@@ -276,6 +276,9 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards }) {
       // Immediately remove the cards we gave away from local state so they
       // disappear without waiting for the DB round-trip.
       const trade = trades.find(t => t.id === tradeId)
+      console.log('[handleAccept] trade:', trade)
+      console.log('[handleAccept] receiver_cards:', trade?.receiver_cards)
+      console.log('[handleAccept] onRemoveCards defined:', typeof onRemoveCards)
       if (trade?.receiver_cards?.length) onRemoveCards?.(trade.receiver_cards)
       await Promise.all([loadAll(), onRefresh?.()])
     } catch (e) {

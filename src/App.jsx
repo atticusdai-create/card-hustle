@@ -325,13 +325,7 @@ export default function App() {
       }
     }
     updateCards(prev => prev.filter(c => c.location !== 'collection'))
-    updateGameState(prev => ({
-      ...prev,
-      money: Math.round((prev.money + totalValue) * 100) / 100,
-      totalEarned: Math.round((prev.totalEarned + totalValue) * 100) / 100,
-      cardsSold: prev.cardsSold + toSell.length,
-    }))
-    showNotification(`Sold ${toSell.length} card${toSell.length === 1 ? '' : 's'} for ${fmt(totalValue)}!`, 'success')
+    showNotification(`Deleted ${toSell.length} card${toSell.length === 1 ? '' : 's'} from your collection.`, 'success')
   }, [])
 
   const purchasePack = useCallback((price) => {

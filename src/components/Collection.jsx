@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef, memo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { LayoutGrid, Store, Award, Search, X, Zap, Check, DollarSign } from 'lucide-react'
+import { LayoutGrid, Store, Award, Search, X, Zap, Check, Trash2 } from 'lucide-react'
 import CardDisplay from './CardDisplay'
 import PSASlabCard from './PSASlabCard'
 import { SPORTS, SPORT_EMOJIS } from '../lib/gameData'
@@ -255,8 +255,8 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
               onClick={() => setSellAllConfirm(true)}
               className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
             >
-              <DollarSign size={16} />
-              <span>Sell All</span>
+              <Trash2 size={16} />
+              <span>Delete All</span>
             </button>
           )}
         </div>
@@ -384,14 +384,10 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
       {sellAllConfirm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 pb-6 sm:pb-0">
           <div className="bg-slate-800 border border-red-500/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 className="text-white font-bold text-lg mb-1">Sell All Cards?</h2>
-            <p className="text-slate-400 text-sm mb-4">
-              Instantly sell all <span className="text-white font-semibold">{collectionCards.length} card{collectionCards.length !== 1 ? 's' : ''}</span> at current market value. This cannot be undone.
+            <h2 className="text-white font-bold text-lg mb-1">Delete All Cards?</h2>
+            <p className="text-slate-400 text-sm mb-5">
+              Permanently delete all <span className="text-white font-semibold">{collectionCards.length} card{collectionCards.length !== 1 ? 's' : ''}</span> from your collection. This cannot be undone.
             </p>
-            <div className="bg-slate-900 rounded-xl p-3 mb-5 flex justify-between items-center">
-              <span className="text-slate-400 text-sm">Total payout</span>
-              <span className="text-amber-400 font-bold text-xl">{fmt(totalValue)}</span>
-            </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setSellAllConfirm(false)}
@@ -403,7 +399,7 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
                 onClick={() => { setSellAllConfirm(false); onSellAll() }}
                 className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-sm transition-colors"
               >
-                Sell All {fmt(totalValue)}
+                Delete All
               </button>
             </div>
           </div>

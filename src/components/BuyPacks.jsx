@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import CardDisplay from './CardDisplay'
 import { PACK_TYPES, generatePackCards, RARITY_ORDER, RARITY_BASE } from '../lib/gameData'
+import PackRevealFC from './PackRevealFC'
 
 function fmt(n) {
   if (n < 1) return Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -837,9 +838,7 @@ export default function BuyPacks({ money, onPurchase, onAddCards }) {
   }
 
   if (phase === 'reveal' && opened) {
-    const isBox = opened.packType.cardCount > 5
-    if (isBox) return <BoxReveal {...opened} onAddToCollection={handleAddToCollection} />
-    return <PackReveal {...opened} onAddToCollection={handleAddToCollection} />
+    return <PackRevealFC cards={opened.cards} onAddToCollection={handleAddToCollection} />
   }
 
   return null
