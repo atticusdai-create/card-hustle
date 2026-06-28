@@ -144,6 +144,10 @@ export default function App() {
     } catch { /* ignore */ }
   }, [user?.id])
 
+  const removeCardIds = useCallback((ids) => {
+    updateCards(prev => prev.filter(c => !ids.includes(c.id)))
+  }, [])
+
   // ── Customer simulation ────────────────────────────────────────────────────
   function makeOffer() {
     if (customerOfferRef.current) return
@@ -504,7 +508,7 @@ export default function App() {
           {/* ── Social ────────────────────────────────────── */}
           <Route path="/friends" element={<Friends />} />
           <Route path="/trade"   element={
-            <TradePage myCards={collectionCards} onRefresh={refreshCards} />
+            <TradePage myCards={collectionCards} onRefresh={refreshCards} onRemoveCards={removeCardIds} />
           } />
 
           {/* ── Fallback ──────────────────────────────────── */}

@@ -135,7 +135,7 @@ function TradeRow({ trade, myId, cardMap, onAccept, onDecline, onCancel }) {
   )
 }
 
-export default function TradePage({ myCards = [], onRefresh }) {
+export default function TradePage({ myCards = [], onRefresh, onRemoveCards }) {
   const { user } = useAuth()
   const location = useLocation()
   const preselectedFriendId = location.state?.friendId
@@ -273,6 +273,10 @@ export default function TradePage({ myCards = [], onRefresh }) {
   async function handleAccept(tradeId) {
     try {
       await acceptTradeRPC(tradeId)
+      // Immediately remove the cards we gave away from local state so they
+      // disappear without waiting for the DB round-trip.
+      const trade = trades.find(t => t.id === tradeId)
+      if (trade?.receiver_cards?.length) onRemoveCards?.(trade.receiver_cards)
       await Promise.all([loadAll(), onRefresh?.()])
     } catch (e) {
       setErrorMsg(e.message || 'Failed to accept trade')
