@@ -7,25 +7,33 @@ function fmt(n) {
 }
 
 // ── Module-level image cache (survives re-renders, cleared on page reload) ──
-const IMG_CACHE = new Map()
+// IMG_CACHE maps playerName → Promise<url|null>, stored immediately so concurrent
+// mounts for the same player share one fetch instead of firing duplicates.
+// IMG_RESOLVED maps playerName → url|null once the promise settles, so a card
+// that re-mounts can initialize with the URL synchronously (no loading flash).
+const IMG_CACHE    = new Map()
+const IMG_RESOLVED = new Map()
 
-async function fetchPlayerImage(playerName) {
+function fetchPlayerImage(playerName) {
   if (IMG_CACHE.has(playerName)) return IMG_CACHE.get(playerName)
-  try {
-    const res = await fetch(
-      `https://www.thesportsdb.com/api/v1/json/3/searchplayers.php?p=${encodeURIComponent(playerName)}`,
-      { signal: AbortSignal.timeout(5000) }
-    )
-    const data = await res.json()
-    const player = data?.player?.[0]
-    // Only use cutout (full body, transparent bg) — not strThumb which is a headshot
-    const url = player?.strCutout || null
-    IMG_CACHE.set(playerName, url)
-    return url
-  } catch {
-    IMG_CACHE.set(playerName, null)
-    return null
-  }
+  const promise = (async () => {
+    try {
+      const res = await fetch(
+        `https://www.thesportsdb.com/api/v1/json/3/searchplayers.php?p=${encodeURIComponent(playerName)}`,
+        { signal: AbortSignal.timeout(5000) }
+      )
+      const data = await res.json()
+      // Only use cutout (full body, transparent bg) — not strThumb which is a headshot
+      const url = data?.player?.[0]?.strCutout || null
+      IMG_RESOLVED.set(playerName, url)
+      return url
+    } catch {
+      IMG_RESOLVED.set(playerName, null)
+      return null
+    }
+  })()
+  IMG_CACHE.set(playerName, promise)
+  return promise
 }
 
 // ── Design tokens per card type ───────────────────────────────────────────
@@ -489,13 +497,22 @@ function SportIcon({ sport, color }) {
 
 // ── Main component ────────────────────────────────────────────────────────
 export default function CardDisplay({ card, children, compact = false, inSlab = false }) {
-  const [photoUrl, setPhotoUrl]   = useState(PLAYER_IMAGES?.[card.playerName] || null)
-  const [photoError, setPhotoError] = useState(false)
-  const [loading, setLoading]     = useState(!PLAYER_IMAGES?.[card.playerName])
+  // fromCache: the URL (or null = "player not found") if already resolved this session,
+  // undefined if never fetched. Using ?? + has() avoids || masking a legitimate null.
+  const fromCache = PLAYER_IMAGES?.[card.playerName] ?? (
+    IMG_RESOLVED.has(card.playerName) ? IMG_RESOLVED.get(card.playerName) : undefined
+  )
+  const knownAlready = fromCache !== undefined
 
-  // Fetch real player photo on mount if we don't already have one
+  const [photoUrl, setPhotoUrl]     = useState(fromCache ?? null)
+  const [photoError, setPhotoError] = useState(false)
+  const [loading, setLoading]       = useState(!knownAlready)
+  const [imgKey, setImgKey]         = useState(0)
+  const [retried, setRetried]       = useState(false)
+
+  // Fetch real player photo on mount unless the result is already cached
   useEffect(() => {
-    if (photoUrl) { setLoading(false); return }
+    if (knownAlready) return
     let cancelled = false
     fetchPlayerImage(card.playerName).then(url => {
       if (!cancelled) {
@@ -505,6 +522,17 @@ export default function CardDisplay({ card, children, compact = false, inSlab = 
     })
     return () => { cancelled = true }
   }, [card.playerName])
+
+  function handleImgError() {
+    if (!retried) {
+      // First failure: remount the img element to re-request the URL.
+      // Handles transient network errors and iOS evicting image data after backgrounding.
+      setRetried(true)
+      setImgKey(k => k + 1)
+    } else {
+      setPhotoError(true)
+    }
+  }
 
   const d = DESIGNS[card.rarity] || DESIGNS.Base
 
@@ -617,8 +645,11 @@ export default function CardDisplay({ card, children, compact = false, inSlab = 
           {/* ── Player photo (real) ── */}
           {showRealPhoto && (
             <img
+              key={imgKey}
               src={photoUrl}
               alt={card.playerName}
+              loading="lazy"
+              decoding="async"
               className="absolute w-full"
               style={{
                 bottom: 0,
@@ -627,13 +658,17 @@ export default function CardDisplay({ card, children, compact = false, inSlab = 
                 objectFit: 'contain',
                 objectPosition: 'center bottom',
               }}
-              onError={() => setPhotoError(true)}
+              onError={handleImgError}
             />
           )}
 
-          {/* ── Loading / fallback (initials + sport icon) ── */}
+          {/* ── Loading skeleton / fallback (initials + sport icon) ── */}
+          {/* Space is already reserved by the fixed-height container above, so no layout shift. */}
           {!showRealPhoto && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+              {loading && (
+                <div className="absolute inset-0 animate-pulse pointer-events-none" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              )}
               <SportIcon sport={card.sport} color={d.initials} />
               <span style={{
                 fontSize: compact ? 18 : 28,
@@ -642,7 +677,7 @@ export default function CardDisplay({ card, children, compact = false, inSlab = 
                 letterSpacing: '-0.02em',
                 userSelect: 'none',
               }}>
-                {loading ? '…' : initials}
+                {initials}
               </span>
             </div>
           )}

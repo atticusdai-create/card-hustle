@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { Wifi, WifiOff, LogOut } from 'lucide-react'
+import { Wifi, WifiOff, LogOut, RefreshCw } from 'lucide-react'
+import { useRegisterSW } from 'virtual:pwa-register/react'
 import Navigation from './components/Navigation'
 import Shop from './components/Shop'
 import CardShows from './components/CardShows'
@@ -62,6 +63,8 @@ function mapDbCard(c) {
 
 export default function App() {
   const { user, profile, loading: authLoading, signOut } = useAuth()
+
+  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
 
   const [loading, setLoading] = useState(true)
   const [online, setOnline]   = useState(true)
@@ -379,6 +382,17 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {/* PWA update banner */}
+      {needRefresh && (
+        <button
+          onClick={() => updateServiceWorker(true)}
+          className="w-full bg-amber-500 text-black text-xs font-bold px-4 py-2.5 flex items-center justify-center gap-2"
+        >
+          <RefreshCw size={13} />
+          Update available — tap to reload
+        </button>
+      )}
 
       {/* Notification toast */}
       {notification && (

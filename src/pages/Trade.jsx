@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Check, ChevronLeft, ArrowLeftRight, Send, X } from 'lucide-react'
+import { Check, ChevronLeft, ArrowLeftRight, Send, X, Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   getFriendships, getFriendCards, proposeTrade,
@@ -153,6 +153,8 @@ export default function TradePage({ myCards = [], onRefresh }) {
   const [loadingFriendCards, setLoadingFriendCards] = useState(false)
   const [sending, setSending] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [mySearch, setMySearch]       = useState('')
+  const [theirSearch, setTheirSearch] = useState('')
 
   // collection cards only
   const myCollectionCards = myCards.filter(c => c.location === 'collection')
@@ -203,6 +205,8 @@ export default function TradePage({ myCards = [], onRefresh }) {
     setMySelected(new Set())
     setTheirSelected(new Set())
     setMessage('')
+    setMySearch('')
+    setTheirSearch('')
     setLoadingFriendCards(true)
     try {
       const raw = await getFriendCards(friend.id)
@@ -357,11 +361,33 @@ export default function TradePage({ myCards = [], onRefresh }) {
                   {myCollectionCards.length === 0 ? (
                     <p className="text-slate-500 text-xs py-2">No cards in collection</p>
                   ) : (
-                    <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
-                      {myCollectionCards.map(c => (
-                        <CardRow key={c.id} card={c} selected={mySelected.has(c.id)} onToggle={toggleMy} />
-                      ))}
-                    </div>
+                    <>
+                      <div className="relative mb-2">
+                        <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Search your cards…"
+                          value={mySearch}
+                          onChange={e => setMySearch(e.target.value)}
+                          className="w-full bg-slate-900 text-white text-xs rounded-lg pl-7 pr-7 py-2 border border-slate-700 outline-none placeholder-slate-600 focus:border-amber-500 transition-colors"
+                        />
+                        {mySearch && (
+                          <button onClick={() => setMySearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                            <X size={11} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+                        {myCollectionCards
+                          .filter(c => !mySearch.trim() || c.playerName.toLowerCase().includes(mySearch.trim().toLowerCase()))
+                          .map(c => (
+                            <CardRow key={c.id} card={c} selected={mySelected.has(c.id)} onToggle={toggleMy} />
+                          ))}
+                        {mySearch.trim() && myCollectionCards.filter(c => c.playerName.toLowerCase().includes(mySearch.trim().toLowerCase())).length === 0 && (
+                          <p className="text-slate-500 text-xs py-2 text-center">No cards match</p>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -376,11 +402,33 @@ export default function TradePage({ myCards = [], onRefresh }) {
                   ) : friendCards.length === 0 ? (
                     <p className="text-slate-500 text-xs py-2">They have no cards in collection</p>
                   ) : (
-                    <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
-                      {friendCards.map(c => (
-                        <CardRow key={c.id} card={c} selected={theirSelected.has(c.id)} onToggle={toggleTheir} />
-                      ))}
-                    </div>
+                    <>
+                      <div className="relative mb-2">
+                        <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder={`Search ${selectedFriend.username}'s cards…`}
+                          value={theirSearch}
+                          onChange={e => setTheirSearch(e.target.value)}
+                          className="w-full bg-slate-900 text-white text-xs rounded-lg pl-7 pr-7 py-2 border border-slate-700 outline-none placeholder-slate-600 focus:border-amber-500 transition-colors"
+                        />
+                        {theirSearch && (
+                          <button onClick={() => setTheirSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                            <X size={11} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+                        {friendCards
+                          .filter(c => !theirSearch.trim() || c.playerName.toLowerCase().includes(theirSearch.trim().toLowerCase()))
+                          .map(c => (
+                            <CardRow key={c.id} card={c} selected={theirSelected.has(c.id)} onToggle={toggleTheir} />
+                          ))}
+                        {theirSearch.trim() && friendCards.filter(c => c.playerName.toLowerCase().includes(theirSearch.trim().toLowerCase())).length === 0 && (
+                          <p className="text-slate-500 text-xs py-2 text-center">No cards match</p>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
 
