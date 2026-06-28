@@ -143,10 +143,18 @@ export default function App() {
     } catch { /* ignore */ }
   }, [user?.id])
 
-  // ── Optimistic removal of traded-away cards (called immediately on accept) ───
+  // ── Optimistic swap on trade accept: remove given cards + add received cards atomically ───
   const removeCards = useCallback((cardIds) => {
     const idSet = new Set(cardIds)
     setCards(prev => prev.filter(c => !idSet.has(c.id)))
+  }, [])
+
+  const swapCards = useCallback((removeIds, addRawCards) => {
+    const idSet = new Set(removeIds)
+    setCards(prev => [
+      ...prev.filter(c => !idSet.has(c.id)),
+      ...addRawCards.map(mapDbCard),
+    ])
   }, [])
 
   // ── Customer simulation ────────────────────────────────────────────────────
@@ -469,7 +477,7 @@ export default function App() {
           {/* ── Social ────────────────────────────────────── */}
           <Route path="/friends" element={<Friends />} />
           <Route path="/trade"   element={
-            <TradePage myCards={collectionCards} onRefresh={refreshCards} onRemoveCards={removeCards} />
+            <TradePage myCards={collectionCards} onRefresh={refreshCards} onRemoveCards={removeCards} onSwapCards={swapCards} />
           } />
 
           {/* ── Fallback ──────────────────────────────────── */}
