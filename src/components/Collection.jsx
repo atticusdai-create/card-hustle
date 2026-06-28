@@ -139,14 +139,15 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
       {collectionCards.length > 0 && (
         <button
           onClick={quickListMode ? exitQuickList : enterQuickList}
-          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-colors ${
+          className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-colors ${
             quickListMode
               ? 'bg-red-500 hover:bg-red-400 text-white'
               : 'bg-amber-500 hover:bg-amber-400 text-black'
           }`}
         >
-          <Zap size={15} />
-          {quickListMode ? 'Cancel Quick List' : 'Quick List — Select & Price Multiple Cards'}
+          <Zap size={16} />
+          <span className="sm:hidden">{quickListMode ? 'Cancel Quick List' : 'Quick List'}</span>
+          <span className="hidden sm:inline">{quickListMode ? 'Cancel Quick List' : 'Quick List — Select & Price Multiple Cards'}</span>
         </button>
       )}
 
@@ -327,7 +328,7 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
 
       {/* Quick List bottom panel */}
       {quickListMode && (
-        <div className="fixed bottom-16 left-0 right-0 z-30 px-4 pb-2 max-w-lg mx-auto">
+        <div className="fixed bottom-20 left-0 right-0 z-30 px-4 pb-2 max-w-lg mx-auto">
           <div className="bg-slate-800 border border-amber-500/40 rounded-2xl p-4 shadow-2xl shadow-black/60">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
