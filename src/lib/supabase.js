@@ -29,18 +29,37 @@ export async function authSignOut() {
 
 // ── Game state ────────────────────────────────────────────────────────────────
 
+async function fetchAllCards(userId) {
+  const PAGE_SIZE = 1000
+  const allCards = []
+  let from = 0
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('cards')
+      .select('*')
+      .eq('user_id', userId)
+      .range(from, from + PAGE_SIZE - 1)
+    if (error) throw error
+    allCards.push(...(data || []))
+    if (!data || data.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+
+  return allCards
+}
+
 export async function loadGame(userId) {
-  const [profileResult, cardsResult] = await Promise.all([
+  const [profileResult, cards] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).single(),
-    supabase.from('cards').select('*').eq('user_id', userId),
+    fetchAllCards(userId),
   ])
 
   if (profileResult.error && profileResult.error.code !== 'PGRST116') throw profileResult.error
-  if (cardsResult.error) throw cardsResult.error
 
   return {
     gameState: profileResult.data,
-    cards: cardsResult.data || [],
+    cards,
   }
 }
 

@@ -10,6 +10,26 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.png'],
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.destination === 'script' || request.destination === 'style' || request.destination === 'document',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'assets-cache',
+              networkTimeoutSeconds: 10,
+            },
+          },
+          {
+            urlPattern: ({ request }) => request.destination === 'image',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'image-cache',
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'Card Hustle',
         short_name: 'Card Hustle',
