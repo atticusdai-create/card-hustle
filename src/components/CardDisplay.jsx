@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { PLAYER_IMAGES, PLAYER_LOOKUP } from '../lib/gameData'
 
 function fmt(n) {
@@ -496,7 +496,7 @@ function SportIcon({ sport, color }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────
-export default function CardDisplay({ card, children, compact = false, inSlab = false }) {
+const CardDisplay = memo(function CardDisplay({ card, children, compact = false, inSlab = false }) {
   // fromCache: the URL (or null = "player not found") if already resolved this session,
   // undefined if never fetched. Using ?? + has() avoids || masking a legitimate null.
   const fromCache = PLAYER_IMAGES?.[card.playerName] ?? (
@@ -834,4 +834,6 @@ export default function CardDisplay({ card, children, compact = false, inSlab = 
     </div>
     </OofWrapper>
   )
-}
+})
+
+export default CardDisplay

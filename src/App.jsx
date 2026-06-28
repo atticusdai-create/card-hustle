@@ -74,6 +74,7 @@ export default function App() {
   const [customerOffer, setCustomerOffer]   = useState(null)
   const [notification, setNotification]     = useState(null)
 
+  const mainScrollRef    = useRef(null)
   const cardsRef         = useRef(cards)
   const gameStateRef     = useRef(gameState)
   const customerOfferRef = useRef(null)
@@ -141,6 +142,12 @@ export default function App() {
       setCards(rawCards.map(mapDbCard))
     } catch { /* ignore */ }
   }, [user?.id])
+
+  // ── Optimistic removal of traded-away cards (called immediately on accept) ───
+  const removeCards = useCallback((cardIds) => {
+    const idSet = new Set(cardIds)
+    setCards(prev => prev.filter(c => !idSet.has(c.id)))
+  }, [])
 
   // ── Customer simulation ────────────────────────────────────────────────────
   function makeOffer() {
@@ -414,7 +421,7 @@ export default function App() {
       </div>
 
       {/* Main content — routed */}
-      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
+      <main ref={mainScrollRef} className="flex-1 overflow-y-auto px-4 pt-4 pb-24">
         <Routes>
           {/* ── Game tabs ─────────────────────────────────── */}
           <Route path="/" element={
@@ -446,6 +453,7 @@ export default function App() {
                   money={gameState.money}
                   onMoveToShop={moveToShop}
                   onSendToGrading={submitForGrading}
+                  scrollRef={mainScrollRef}
                 />
               )}
               {activeTab === 'packs' && (
@@ -461,7 +469,7 @@ export default function App() {
           {/* ── Social ────────────────────────────────────── */}
           <Route path="/friends" element={<Friends />} />
           <Route path="/trade"   element={
-            <TradePage myCards={collectionCards} onRefresh={refreshCards} />
+            <TradePage myCards={collectionCards} onRefresh={refreshCards} onRemoveCards={removeCards} />
           } />
 
           {/* ── Fallback ──────────────────────────────────── */}

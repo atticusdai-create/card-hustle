@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Check, ChevronLeft, ArrowLeftRight, Send, X, Search } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -135,7 +135,7 @@ function TradeRow({ trade, myId, cardMap, onAccept, onDecline, onCancel }) {
   )
 }
 
-export default function TradePage({ myCards = [], onRefresh }) {
+export default function TradePage({ myCards = [], onRefresh, onRemoveCards }) {
   const { user } = useAuth()
   const location = useLocation()
   const preselectedFriendId = location.state?.friendId
@@ -153,11 +153,26 @@ export default function TradePage({ myCards = [], onRefresh }) {
   const [loadingFriendCards, setLoadingFriendCards] = useState(false)
   const [sending, setSending] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-  const [mySearch, setMySearch]       = useState('')
-  const [theirSearch, setTheirSearch] = useState('')
+  const [mySearch, setMySearch]             = useState('')
+  const [theirSearch, setTheirSearch]       = useState('')
+  const [debouncedMySearch, setDebouncedMySearch]       = useState('')
+  const [debouncedTheirSearch, setDebouncedTheirSearch] = useState('')
+
+  // 200ms debounce on both search fields
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedMySearch(mySearch), 200)
+    return () => clearTimeout(id)
+  }, [mySearch])
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedTheirSearch(theirSearch), 200)
+    return () => clearTimeout(id)
+  }, [theirSearch])
 
   // collection cards only
-  const myCollectionCards = myCards.filter(c => c.location === 'collection')
+  const myCollectionCards = useMemo(
+    () => myCards.filter(c => c.location === 'collection'),
+    [myCards]
+  )
 
   useEffect(() => { loadAll() }, [])
 
@@ -249,7 +264,12 @@ export default function TradePage({ myCards = [], onRefresh }) {
 
   async function handleAccept(tradeId) {
     try {
+      const trade = trades.find(t => t.id === tradeId)
       await acceptTradeRPC(tradeId)
+      // Immediately drop the cards we gave away from local state — no waiting for refetch
+      if (trade?.receiver_cards?.length) {
+        onRemoveCards?.(trade.receiver_cards)
+      }
       await loadAll()
       onRefresh?.()
     } catch (e) {
@@ -271,9 +291,21 @@ export default function TradePage({ myCards = [], onRefresh }) {
     } catch { /* ignore */ }
   }
 
-  const incoming = trades.filter(t => t.receiver_id === user?.id && t.status === 'pending')
-  const sent     = trades.filter(t => t.sender_id   === user?.id && t.status === 'pending')
-  const history  = trades.filter(t => t.status !== 'pending')
+  const incoming = useMemo(() => trades.filter(t => t.receiver_id === user?.id && t.status === 'pending'), [trades, user?.id])
+  const sent     = useMemo(() => trades.filter(t => t.sender_id   === user?.id && t.status === 'pending'), [trades, user?.id])
+  const history  = useMemo(() => trades.filter(t => t.status !== 'pending'), [trades])
+
+  const filteredMyCards = useMemo(() => {
+    if (!debouncedMySearch.trim()) return myCollectionCards
+    const q = debouncedMySearch.trim().toLowerCase()
+    return myCollectionCards.filter(c => c.playerName.toLowerCase().includes(q))
+  }, [myCollectionCards, debouncedMySearch])
+
+  const filteredTheirCards = useMemo(() => {
+    if (!debouncedTheirSearch.trim()) return friendCards
+    const q = debouncedTheirSearch.trim().toLowerCase()
+    return friendCards.filter(c => c.playerName.toLowerCase().includes(q))
+  }, [friendCards, debouncedTheirSearch])
 
   return (
     <div className="flex flex-col gap-4">
@@ -378,12 +410,10 @@ export default function TradePage({ myCards = [], onRefresh }) {
                         )}
                       </div>
                       <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
-                        {myCollectionCards
-                          .filter(c => !mySearch.trim() || c.playerName.toLowerCase().includes(mySearch.trim().toLowerCase()))
-                          .map(c => (
-                            <CardRow key={c.id} card={c} selected={mySelected.has(c.id)} onToggle={toggleMy} />
-                          ))}
-                        {mySearch.trim() && myCollectionCards.filter(c => c.playerName.toLowerCase().includes(mySearch.trim().toLowerCase())).length === 0 && (
+                        {filteredMyCards.map(c => (
+                          <CardRow key={c.id} card={c} selected={mySelected.has(c.id)} onToggle={toggleMy} />
+                        ))}
+                        {debouncedMySearch.trim() && filteredMyCards.length === 0 && (
                           <p className="text-slate-500 text-xs py-2 text-center">No cards match</p>
                         )}
                       </div>
@@ -419,12 +449,10 @@ export default function TradePage({ myCards = [], onRefresh }) {
                         )}
                       </div>
                       <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
-                        {friendCards
-                          .filter(c => !theirSearch.trim() || c.playerName.toLowerCase().includes(theirSearch.trim().toLowerCase()))
-                          .map(c => (
-                            <CardRow key={c.id} card={c} selected={theirSelected.has(c.id)} onToggle={toggleTheir} />
-                          ))}
-                        {theirSearch.trim() && friendCards.filter(c => c.playerName.toLowerCase().includes(theirSearch.trim().toLowerCase())).length === 0 && (
+                        {filteredTheirCards.map(c => (
+                          <CardRow key={c.id} card={c} selected={theirSelected.has(c.id)} onToggle={toggleTheir} />
+                        ))}
+                        {debouncedTheirSearch.trim() && filteredTheirCards.length === 0 && (
                           <p className="text-slate-500 text-xs py-2 text-center">No cards match</p>
                         )}
                       </div>
