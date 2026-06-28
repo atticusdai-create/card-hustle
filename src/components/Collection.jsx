@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutGrid, Store, Award, Search, X } from 'lucide-react'
+import { LayoutGrid, Store, Award, Search, X, Zap, Check } from 'lucide-react'
 import CardDisplay from './CardDisplay'
 import PSASlabCard from './PSASlabCard'
 import { SPORTS, SPORT_EMOJIS } from '../lib/gameData'
@@ -19,6 +19,57 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
   const [listError, setListError] = useState('')
   const [search, setSearch] = useState('')
   const [psaFilter, setPsaFilter] = useState('All') // 'All' | 'Ungraded' | '1'–'10'
+  const [quickListMode, setQuickListMode] = useState(false)
+  const [selectedCardIds, setSelectedCardIds] = useState(new Set())
+  const [quickListPrice, setQuickListPrice] = useState('')
+  const [quickListError, setQuickListError] = useState('')
+
+  function enterQuickList() {
+    setQuickListMode(true)
+    setSelectedCardIds(new Set())
+    setQuickListPrice('')
+    setQuickListError('')
+    setPricingCard(null)
+  }
+
+  function exitQuickList() {
+    setQuickListMode(false)
+    setSelectedCardIds(new Set())
+    setQuickListPrice('')
+    setQuickListError('')
+  }
+
+  function toggleCardSelection(cardId) {
+    setSelectedCardIds(prev => {
+      const next = new Set(prev)
+      if (next.has(cardId)) next.delete(cardId)
+      else next.add(cardId)
+      return next
+    })
+    setQuickListError('')
+  }
+
+  function handleListAll() {
+    const selectedCards = collectionCards.filter(c => selectedCardIds.has(c.id))
+    if (selectedCards.length === 0) {
+      setQuickListError('Select at least one card')
+      return
+    }
+    const price = parseFloat(quickListPrice)
+    if (isNaN(price) || price <= 0) {
+      setQuickListError('Enter a valid price')
+      return
+    }
+    // Find the card whose max price is the tightest constraint
+    const blocking = selectedCards.find(c => price > c.currentValue + 50)
+    if (blocking) {
+      const minMax = Math.min(...selectedCards.map(c => c.currentValue + 50))
+      setQuickListError(`Price too high — max is $${Math.round(minMax)} for the cheapest selected card`)
+      return
+    }
+    selectedCards.forEach(c => onMoveToShop(c.id, Math.round(price * 100) / 100))
+    exitQuickList()
+  }
 
   const totalValue = collectionCards.reduce((s, c) => s + c.currentValue, 0)
 
@@ -77,9 +128,24 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
             <p className="text-slate-400 text-xs">Cards in Collection</p>
             <p className="text-white font-bold text-2xl">{collectionCards.length}</p>
           </div>
-          <div className="text-right">
-            <p className="text-slate-400 text-xs">Total Value</p>
-            <p className="text-amber-400 font-bold text-2xl">{fmt(totalValue)}</p>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="text-slate-400 text-xs">Total Value</p>
+              <p className="text-amber-400 font-bold text-2xl">{fmt(totalValue)}</p>
+            </div>
+            {collectionCards.length > 0 && (
+              <button
+                onClick={quickListMode ? exitQuickList : enterQuickList}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                  quickListMode
+                    ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
+                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30'
+                }`}
+              >
+                <Zap size={13} />
+                {quickListMode ? 'Cancel' : 'Quick List'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -166,8 +232,31 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 items-start">
+        <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 items-start ${quickListMode ? 'pb-36' : ''}`}>
           {filtered.map(card => {
+            const isSelected = selectedCardIds.has(card.id)
+
+            if (quickListMode) {
+              const cardContent = (
+                <button
+                  onClick={() => toggleCardSelection(card.id)}
+                  className={`w-full text-left relative rounded-xl transition-all ${
+                    isSelected ? 'ring-2 ring-amber-500 ring-offset-2 ring-offset-slate-900' : 'opacity-70 hover:opacity-90'
+                  }`}
+                >
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 z-10 bg-amber-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
+                      <Check size={12} className="text-black" strokeWidth={3} />
+                    </div>
+                  )}
+                  {card.psaGrade
+                    ? <PSASlabCard card={card} />
+                    : <CardDisplay card={card} />}
+                </button>
+              )
+              return <div key={card.id}>{cardContent}</div>
+            }
+
             const actionButtons = (
               <div className="space-y-1.5">
                 {pricingCard === card.id ? (
@@ -233,6 +322,47 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
               </CardDisplay>
             )
           })}
+        </div>
+      )}
+
+      {/* Quick List bottom panel */}
+      {quickListMode && (
+        <div className="fixed bottom-16 left-0 right-0 z-30 px-4 pb-2 max-w-lg mx-auto">
+          <div className="bg-slate-800 border border-amber-500/40 rounded-2xl p-4 shadow-2xl shadow-black/60">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Zap size={14} className="text-amber-400" />
+                <span className="text-white text-sm font-bold">Quick List</span>
+              </div>
+              <span className="text-amber-400 text-sm font-semibold">
+                {selectedCardIds.size} card{selectedCardIds.size !== 1 ? 's' : ''} selected
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <div className={`flex-1 flex items-center bg-slate-900 rounded-xl border overflow-hidden ${quickListError ? 'border-red-500' : 'border-slate-600 focus-within:border-amber-500'} transition-colors`}>
+                <span className="text-amber-500 text-sm pl-3">$</span>
+                <input
+                  type="number"
+                  placeholder="Price for all"
+                  className="flex-1 bg-transparent text-white text-sm px-2 py-2.5 outline-none placeholder-slate-500"
+                  value={quickListPrice}
+                  onChange={e => { setQuickListPrice(e.target.value); setQuickListError('') }}
+                  onKeyDown={e => { if (e.key === 'Enter') handleListAll() }}
+                />
+              </div>
+              <button
+                onClick={handleListAll}
+                disabled={selectedCardIds.size === 0}
+                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap"
+              >
+                List All
+              </button>
+            </div>
+            {quickListError && (
+              <p className="text-red-400 text-xs mt-2">{quickListError}</p>
+            )}
+            <p className="text-slate-500 text-xs mt-2">Tap cards above to select · Max price = card value + $50</p>
+          </div>
         </div>
       )}
     </div>
