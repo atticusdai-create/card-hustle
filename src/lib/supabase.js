@@ -208,6 +208,18 @@ export async function getTrades() {
   return data || []
 }
 
+export async function getPendingIncomingTradeCount() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
+  const { count, error } = await supabase
+    .from('trades')
+    .select('*', { count: 'exact', head: true })
+    .eq('receiver_id', user.id)
+    .eq('status', 'pending')
+  if (error) return 0
+  return count ?? 0
+}
+
 export async function respondTrade(tradeId, status) {
   const { error } = await supabase
     .from('trades')

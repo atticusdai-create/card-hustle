@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef, memo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { LayoutGrid, Store, Award, Search, X, Zap, Check } from 'lucide-react'
+import { LayoutGrid, Store, Award, Search, X, Zap, Check, DollarSign } from 'lucide-react'
 import CardDisplay from './CardDisplay'
 import PSASlabCard from './PSASlabCard'
 import { SPORTS, SPORT_EMOJIS } from '../lib/gameData'
@@ -113,7 +113,7 @@ const QuickListCard = memo(function QuickListCard({ card, isSelected, onToggle }
   )
 })
 
-export default function Collection({ collectionCards, money, onMoveToShop, onSendToGrading, scrollRef }) {
+export default function Collection({ collectionCards, money, onMoveToShop, onSendToGrading, onSellAll, scrollRef }) {
   const [sportFilter, setSportFilter] = useState('All')
   const [sortBy, setSortBy] = useState('value')
   const [search, setSearch] = useState('')
@@ -123,6 +123,7 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
   const [selectedCardIds, setSelectedCardIds] = useState(new Set())
   const [quickListPrice, setQuickListPrice] = useState('')
   const [quickListError, setQuickListError] = useState('')
+  const [sellAllConfirm, setSellAllConfirm] = useState(false)
   const [cols, setCols] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 640 ? 3 : 2)
 
   // 200ms debounce on search to avoid refiltering on every keystroke
@@ -235,20 +236,30 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
         </div>
       </div>
 
-      {/* Quick List button */}
+      {/* Quick List + Sell All buttons */}
       {collectionCards.length > 0 && (
-        <button
-          onClick={quickListMode ? exitQuickList : enterQuickList}
-          className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-colors ${
-            quickListMode
-              ? 'bg-red-500 hover:bg-red-400 text-white'
-              : 'bg-amber-500 hover:bg-amber-400 text-black'
-          }`}
-        >
-          <Zap size={16} />
-          <span className="sm:hidden">{quickListMode ? 'Cancel Quick List' : 'Quick List'}</span>
-          <span className="hidden sm:inline">{quickListMode ? 'Cancel Quick List' : 'Quick List — Select & Price Multiple Cards'}</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={quickListMode ? exitQuickList : enterQuickList}
+            className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-colors ${
+              quickListMode
+                ? 'bg-red-500 hover:bg-red-400 text-white'
+                : 'bg-amber-500 hover:bg-amber-400 text-black'
+            }`}
+          >
+            <Zap size={16} />
+            <span>{quickListMode ? 'Cancel' : 'Quick List'}</span>
+          </button>
+          {!quickListMode && (
+            <button
+              onClick={() => setSellAllConfirm(true)}
+              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+            >
+              <DollarSign size={16} />
+              <span>Sell All</span>
+            </button>
+          )}
+        </div>
       )}
 
       {/* Search */}
@@ -366,6 +377,36 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Sell All confirmation modal */}
+      {sellAllConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 pb-6 sm:pb-0">
+          <div className="bg-slate-800 border border-red-500/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-white font-bold text-lg mb-1">Sell All Cards?</h2>
+            <p className="text-slate-400 text-sm mb-4">
+              Instantly sell all <span className="text-white font-semibold">{collectionCards.length} card{collectionCards.length !== 1 ? 's' : ''}</span> at current market value. This cannot be undone.
+            </p>
+            <div className="bg-slate-900 rounded-xl p-3 mb-5 flex justify-between items-center">
+              <span className="text-slate-400 text-sm">Total payout</span>
+              <span className="text-amber-400 font-bold text-xl">{fmt(totalValue)}</span>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSellAllConfirm(false)}
+                className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { setSellAllConfirm(false); onSellAll() }}
+                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-sm transition-colors"
+              >
+                Sell All {fmt(totalValue)}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

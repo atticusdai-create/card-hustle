@@ -12,7 +12,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Friends from './pages/Friends'
 import TradePage from './pages/Trade'
-import { supabase, loadGame, saveGameState, upsertCard, deleteCard } from './lib/supabase'
+import { supabase, loadGame, saveGameState, upsertCard, deleteCard, getPendingIncomingTradeCount } from './lib/supabase'
 import { useAuth } from './contexts/AuthContext'
 import { generateCard, generatePsaGrade, calcCurrentValue, COLLECTOR_NAMES } from './lib/gameData'
 
@@ -73,6 +73,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('shows')
   const [customerOffer, setCustomerOffer]   = useState(null)
   const [notification, setNotification]     = useState(null)
+  const [pendingTradeCount, setPendingTradeCount] = useState(0)
 
   const mainScrollRef    = useRef(null)
   const cardsRef         = useRef(cards)
@@ -174,6 +175,22 @@ export default function App() {
     }, 10_000)
     return () => clearInterval(id)
   }, [])
+
+  // ── Pending incoming trade count (badge on nav) ───────────────────────────
+  useEffect(() => {
+    if (!user) { setPendingTradeCount(0); return }
+    let cancelled = false
+    async function fetchCount() {
+      const count = await getPendingIncomingTradeCount()
+      if (!cancelled) setPendingTradeCount(count)
+    }
+    fetchCount()
+    const channel = supabase
+      .channel(`pending-trades-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trades' }, fetchCount)
+      .subscribe()
+    return () => { cancelled = true; supabase.removeChannel(channel) }
+  }, [user?.id])
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function showNotification(message, type = 'info') {
@@ -288,6 +305,21 @@ export default function App() {
     setCustomerOffer(null)
     customerOfferRef.current = null
     scheduleOffer(1200)
+  }, [])
+
+  const sellAllCollection = useCallback(() => {
+    const toSell = cardsRef.current.filter(c => c.location === 'collection')
+    if (toSell.length === 0) return
+    const totalValue = Math.round(toSell.reduce((s, c) => s + c.currentValue, 0) * 100) / 100
+    updateCards(prev => prev.filter(c => c.location !== 'collection'))
+    updateGameState(prev => ({
+      ...prev,
+      money: Math.round((prev.money + totalValue) * 100) / 100,
+      totalEarned: Math.round((prev.totalEarned + totalValue) * 100) / 100,
+      cardsSold: prev.cardsSold + toSell.length,
+    }))
+    if (onlineRef.current) toSell.forEach(c => deleteCard(c.id).catch(console.error))
+    showNotification(`Sold ${toSell.length} card${toSell.length === 1 ? '' : 's'} for ${fmt(totalValue)}!`, 'success')
   }, [])
 
   const purchasePack = useCallback((price) => {
@@ -447,6 +479,7 @@ export default function App() {
                   money={gameState.money}
                   onMoveToShop={moveToShop}
                   onSendToGrading={submitForGrading}
+                  onSellAll={sellAllCollection}
                   scrollRef={mainScrollRef}
                 />
               )}
@@ -475,6 +508,7 @@ export default function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         gradingCount={gradingCards.length}
+        pendingTradeCount={pendingTradeCount}
       />
     </div>
   )

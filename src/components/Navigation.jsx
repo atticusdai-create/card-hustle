@@ -14,7 +14,7 @@ const ROUTE_TABS = [
   { path: '/trade',   label: 'Trade',   Icon: ArrowLeftRight },
 ]
 
-export default function Navigation({ activeTab, onTabChange, gradingCount }) {
+export default function Navigation({ activeTab, onTabChange, gradingCount, pendingTradeCount = 0 }) {
   const navigate  = useNavigate()
   const location  = useLocation()
   const isHome    = location.pathname === '/'
@@ -54,6 +54,7 @@ export default function Navigation({ activeTab, onTabChange, gradingCount }) {
 
         {ROUTE_TABS.map(({ path, label, Icon }) => {
           const active = location.pathname === path
+          const badgeCount = path === '/trade' ? pendingTradeCount : 0
           return (
             <button
               key={path}
@@ -61,7 +62,14 @@ export default function Navigation({ activeTab, onTabChange, gradingCount }) {
               className={`flex-1 flex flex-col items-center justify-center py-2 pt-2.5 gap-0.5 transition-colors relative
                 ${active ? 'text-amber-400' : 'text-slate-500 hover:text-slate-300'}`}
             >
-              <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
+              <div className="relative">
+                <Icon size={18} strokeWidth={active ? 2.5 : 1.8} />
+                {badgeCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {badgeCount > 9 ? '9+' : badgeCount}
+                  </span>
+                )}
+              </div>
               <span className={`text-[10px] font-medium ${active ? 'text-amber-400' : ''}`}>
                 {label}
               </span>
