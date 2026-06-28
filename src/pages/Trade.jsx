@@ -135,7 +135,7 @@ function TradeRow({ trade, myId, cardMap, onAccept, onDecline, onCancel }) {
   )
 }
 
-export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSwapCards }) {
+export default function TradePage({ myCards = [], onRefresh }) {
   const { user } = useAuth()
   const location = useLocation()
   const preselectedFriendId = location.state?.friendId
@@ -272,13 +272,8 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSw
 
   async function handleAccept(tradeId) {
     try {
-      const trade = trades.find(t => t.id === tradeId)
       await acceptTradeRPC(tradeId)
-      // Single atomic state update: remove cards given away, add cards received
-      const removeIds = trade?.receiver_cards || []
-      const addRawCards = (trade?.sender_cards || []).map(id => cardMap[id]).filter(Boolean).map(mapCard)
-      onSwapCards?.(removeIds, addRawCards)
-      await loadAll()
+      await Promise.all([loadAll(), onRefresh?.()])
     } catch (e) {
       setErrorMsg(e.message || 'Failed to accept trade')
     }
