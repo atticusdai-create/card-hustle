@@ -128,27 +128,27 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
             <p className="text-slate-400 text-xs">Cards in Collection</p>
             <p className="text-white font-bold text-2xl">{collectionCards.length}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
+          <div className="text-right">
               <p className="text-slate-400 text-xs">Total Value</p>
               <p className="text-amber-400 font-bold text-2xl">{fmt(totalValue)}</p>
             </div>
-            {collectionCards.length > 0 && (
-              <button
-                onClick={quickListMode ? exitQuickList : enterQuickList}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
-                  quickListMode
-                    ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30'
-                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30'
-                }`}
-              >
-                <Zap size={13} />
-                {quickListMode ? 'Cancel' : 'Quick List'}
-              </button>
-            )}
-          </div>
         </div>
       </div>
+
+      {/* Quick List button */}
+      {collectionCards.length > 0 && (
+        <button
+          onClick={quickListMode ? exitQuickList : enterQuickList}
+          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-colors ${
+            quickListMode
+              ? 'bg-red-500 hover:bg-red-400 text-white'
+              : 'bg-amber-500 hover:bg-amber-400 text-black'
+          }`}
+        >
+          <Zap size={15} />
+          {quickListMode ? 'Cancel Quick List' : 'Quick List — Select & Price Multiple Cards'}
+        </button>
+      )}
 
       {/* Search */}
       <div className="relative">
