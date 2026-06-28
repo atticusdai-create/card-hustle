@@ -234,9 +234,12 @@ function CompleteView({ cards, onAddToCollection }) {
 // ── Main export ──────────────────────────────────────────────────────────────
 
 export default function PackRevealFC({ cards = [], onAddToCollection }) {
-  const [idx, setIdx]       = useState(0)
-  const [done, setDone]     = useState([])
-  const [complete, setComplete] = useState(false)
+  const [idx, setIdx]                       = useState(0)
+  const [done, setDone]                     = useState([])
+  const [complete, setComplete]             = useState(false)
+  const [gridCards, setGridCards]           = useState(null)
+  const [activeGridIdx, setActiveGridIdx]   = useState(null)
+  const [revealedGridIdxs, setRevealedGridIdxs] = useState(new Set())
 
   if (!cards.length) return null
 
@@ -251,6 +254,28 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
     }
   }
 
+  function handleSkip() {
+    const remaining = cards.slice(idx)
+    const lowCards  = remaining.filter(c => !isEpic(c))
+    const highCards = remaining.filter(c => isEpic(c))
+    setDone(prev => [...prev, ...lowCards])
+    if (highCards.length === 0) {
+      setComplete(true)
+    } else {
+      setGridCards(highCards)
+    }
+  }
+
+  function onGridCardDone(gIdx) {
+    setActiveGridIdx(null)
+    const newRevealed = new Set(revealedGridIdxs)
+    newRevealed.add(gIdx)
+    setRevealedGridIdxs(newRevealed)
+    if (newRevealed.size === gridCards.length) {
+      setComplete(true)
+    }
+  }
+
   if (complete) {
     return (
       <div className="pfc-overlay pfc-overlay--complete">
@@ -259,6 +284,61 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
     )
   }
 
+  // Grid mode: full-screen epic reveal for the tapped card
+  if (gridCards !== null && activeGridIdx !== null) {
+    return (
+      <div className="pfc-overlay">
+        <div className="pfc-stage">
+          <CardReveal
+            key={`grid-${activeGridIdx}`}
+            card={gridCards[activeGridIdx]}
+            epic={true}
+            onDone={() => onGridCardDone(activeGridIdx)}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // Grid mode: row of face-down high-rarity cards waiting to be tapped
+  if (gridCards !== null) {
+    const remaining = gridCards.length - revealedGridIdxs.size
+    return (
+      <div className="pfc-overlay">
+        <div className="pfc-grid-reveal">
+          <p className="pfc-grid-title">
+            {remaining} rare {remaining === 1 ? 'card' : 'cards'} to reveal
+          </p>
+          <div className="pfc-grid-row">
+            {gridCards.map((card, i) => {
+              const revealed = revealedGridIdxs.has(i)
+              const color = glowColor(card.rarity)
+              return (
+                <div
+                  key={card.id || i}
+                  className={`pfc-grid-card${revealed ? ' pfc-grid-card--revealed' : ' pfc-grid-card--facedown'}`}
+                  style={{ '--g': color }}
+                  onClick={() => !revealed && setActiveGridIdx(i)}
+                  role={revealed ? undefined : 'button'}
+                  tabIndex={revealed ? undefined : 0}
+                  onKeyDown={revealed ? undefined : e => (e.key === 'Enter' || e.key === ' ') && setActiveGridIdx(i)}
+                >
+                  {revealed ? (
+                    <CardDisplay card={card} compact />
+                  ) : (
+                    <CardBack epicSuspense={true} glowCol={color} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          {remaining > 0 && <p className="pfc-grid-hint">Tap a card to reveal</p>}
+        </div>
+      </div>
+    )
+  }
+
+  // Normal sequential mode
   const card = cards[idx]
   const epic = isEpic(card)
 
@@ -266,11 +346,9 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
     <div className="pfc-overlay">
       <div className="pfc-progress">
         <span>{idx + 1} / {cards.length}</span>
-        {cards.length > 5 && (
-          <button className="pfc-skip" onClick={() => setComplete(true)}>
-            Skip all
-          </button>
-        )}
+        <button className="pfc-skip" onClick={handleSkip}>
+          Skip
+        </button>
       </div>
 
       <div className="pfc-stage">

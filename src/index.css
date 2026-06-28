@@ -574,3 +574,64 @@ button { cursor: pointer; }
   box-shadow: 0 8px 26px rgba(16, 185, 129, 0.5);
 }
 .pfc-add-btn:active { transform: translateY(0); }
+
+/* ── Grid reveal (post-skip, high-rarity cards face-down in a row) ── */
+.pfc-grid-reveal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px 16px;
+  width: 100%;
+}
+.pfc-grid-title {
+  color: rgba(255,255,255,0.55);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.pfc-grid-hint {
+  color: rgba(255,255,255,0.32);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  animation: pfc-hint-blink 1.4s ease-in-out infinite;
+}
+.pfc-grid-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 100%;
+}
+.pfc-grid-card {
+  width: 100px;
+  height: 140px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+.pfc-grid-card--facedown {
+  cursor: pointer;
+  transition: transform 0.15s;
+  animation: pfc-grid-glow 1.2s ease-in-out infinite alternate;
+}
+.pfc-grid-card--facedown:hover {
+  transform: translateY(-5px) scale(1.05);
+}
+@keyframes pfc-grid-glow {
+  from { box-shadow: 0 0 10px var(--g, #fff); }
+  to   { box-shadow: 0 0 28px var(--g, #fff), 0 0 0 1.5px var(--g, #fff); }
+}
+.pfc-grid-card--revealed {
+  opacity: 0.9;
+  animation: pfc-grid-card-pop 0.35s cubic-bezier(0.18, 1.4, 0.4, 1) both;
+}
+@keyframes pfc-grid-card-pop {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 0.9; transform: scale(1); }
+}
