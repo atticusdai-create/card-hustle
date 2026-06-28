@@ -105,6 +105,16 @@ export async function deleteCard(cardId) {
   if (error) console.error('Delete card error:', error)
 }
 
+export async function deleteCards(cardIds) {
+  if (!cardIds.length) return
+  const BATCH = 100
+  for (let i = 0; i < cardIds.length; i += BATCH) {
+    const batch = cardIds.slice(i, i + BATCH)
+    const { error } = await supabase.from('cards').delete().in('id', batch)
+    if (error) throw error
+  }
+}
+
 // ── Friends ───────────────────────────────────────────────────────────────────
 
 export async function searchProfiles(query) {

@@ -12,7 +12,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Friends from './pages/Friends'
 import TradePage from './pages/Trade'
-import { supabase, loadGame, saveGameState, upsertCard, deleteCard, getPendingIncomingTradeCount } from './lib/supabase'
+import { supabase, loadGame, saveGameState, upsertCard, deleteCard, deleteCards, getPendingIncomingTradeCount } from './lib/supabase'
 import { useAuth } from './contexts/AuthContext'
 import { generateCard, generatePsaGrade, calcCurrentValue, COLLECTOR_NAMES } from './lib/gameData'
 
@@ -307,10 +307,19 @@ export default function App() {
     scheduleOffer(1200)
   }, [])
 
-  const sellAllCollection = useCallback(() => {
+  const sellAllCollection = useCallback(async () => {
     const toSell = cardsRef.current.filter(c => c.location === 'collection')
     if (toSell.length === 0) return
     const totalValue = Math.round(toSell.reduce((s, c) => s + c.currentValue, 0) * 100) / 100
+    if (onlineRef.current) {
+      try {
+        await deleteCards(toSell.map(c => c.id))
+      } catch (err) {
+        console.error('Sell All delete failed:', err)
+        showNotification('Sale failed — please try again.', 'error')
+        return
+      }
+    }
     updateCards(prev => prev.filter(c => c.location !== 'collection'))
     updateGameState(prev => ({
       ...prev,
@@ -318,7 +327,6 @@ export default function App() {
       totalEarned: Math.round((prev.totalEarned + totalValue) * 100) / 100,
       cardsSold: prev.cardsSold + toSell.length,
     }))
-    if (onlineRef.current) toSell.forEach(c => deleteCard(c.id).catch(console.error))
     showNotification(`Sold ${toSell.length} card${toSell.length === 1 ? '' : 's'} for ${fmt(totalValue)}!`, 'success')
   }, [])
 
