@@ -210,6 +210,7 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSw
       }
     } catch (e) {
       console.error(e)
+      setErrorMsg(e.message || 'Failed to load trades — check your connection and try again')
     } finally {
       setLoading(false)
     }
@@ -228,7 +229,10 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSw
       const mapped = raw.map(mapCard)
       console.log('[Trade] friend cards loaded:', mapped.map(c => ({ id: c.id, playerName: c.playerName })))
       setFriendCards(mapped)
-    } catch { setFriendCards([]) } finally {
+    } catch (e) {
+      setFriendCards([])
+      setErrorMsg(`Could not load ${friend.username}'s cards: ${e.message}`)
+    } finally {
       setLoadingFriendCards(false)
     }
   }
@@ -284,14 +288,18 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSw
     try {
       await respondTrade(tradeId, 'declined')
       await loadAll()
-    } catch { /* ignore */ }
+    } catch (e) {
+      setErrorMsg(e.message || 'Failed to decline trade')
+    }
   }
 
   async function handleCancel(tradeId) {
     try {
       await respondTrade(tradeId, 'cancelled')
       await loadAll()
-    } catch { /* ignore */ }
+    } catch (e) {
+      setErrorMsg(e.message || 'Failed to cancel trade')
+    }
   }
 
   const incoming = useMemo(() => trades.filter(t => t.receiver_id === user?.id && t.status === 'pending'), [trades, user?.id])

@@ -152,13 +152,23 @@ export async function respondFriendRequest(friendshipId, status) {
 
 // ── Trades ────────────────────────────────────────────────────────────────────
 
+function supabaseErrorMessage(error) {
+  const parts = [error.message || 'Unknown error']
+  if (error.code) parts.push(`[${error.code}]`)
+  if (error.details) parts.push(error.details)
+  if (error.hint) parts.push(`Hint: ${error.hint}`)
+  return parts.join(' — ')
+}
+
 export async function getFriendCards(friendId) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated — please log out and log back in')
   const { data, error } = await supabase
     .from('cards')
     .select('*')
     .eq('user_id', friendId)
     .eq('location', 'collection')
-  if (error) throw error
+  if (error) throw new Error(supabaseErrorMessage(error))
   return data || []
 }
 
@@ -171,7 +181,7 @@ export async function getCardsByIds(ids) {
 
 export async function proposeTrade(receiverId, senderCards, receiverCards, message) {
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
+  if (!user) throw new Error('Not authenticated — please log out and log back in')
   const { error } = await supabase.from('trades').insert({
     sender_id: user.id,
     receiver_id: receiverId,
@@ -179,7 +189,7 @@ export async function proposeTrade(receiverId, senderCards, receiverCards, messa
     receiver_cards: receiverCards,
     message: message || null,
   })
-  if (error) throw error
+  if (error) throw new Error(supabaseErrorMessage(error))
 }
 
 export async function getTrades() {
@@ -203,10 +213,12 @@ export async function respondTrade(tradeId, status) {
     .from('trades')
     .update({ status })
     .eq('id', tradeId)
-  if (error) throw error
+  if (error) throw new Error(supabaseErrorMessage(error))
 }
 
 export async function acceptTradeRPC(tradeId) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated — please log out and log back in')
   const { error } = await supabase.rpc('accept_trade', { trade_id: tradeId })
-  if (error) throw error
+  if (error) throw new Error(supabaseErrorMessage(error))
 }
