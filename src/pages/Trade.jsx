@@ -225,7 +225,9 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSw
     setLoadingFriendCards(true)
     try {
       const raw = await getFriendCards(friend.id)
-      setFriendCards(raw.map(mapCard))
+      const mapped = raw.map(mapCard)
+      console.log('[Trade] friend cards loaded:', mapped.map(c => ({ id: c.id, playerName: c.playerName })))
+      setFriendCards(mapped)
     } catch { setFriendCards([]) } finally {
       setLoadingFriendCards(false)
     }
@@ -235,6 +237,7 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSw
     setMySelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
   function toggleTheir(id) {
+    console.log('[Trade] toggleTheir called with id:', id)
     setTheirSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
@@ -247,6 +250,7 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSw
     setErrorMsg('')
     setSending(true)
     try {
+      console.log('[Trade] proposeTrade args — senderCards:', [...mySelected], 'receiverCards:', [...theirSelected])
       await proposeTrade(selectedFriend.id, [...mySelected], [...theirSelected], message)
       setSelectedFriend(null)
       setMySelected(new Set())
