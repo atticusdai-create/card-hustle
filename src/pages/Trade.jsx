@@ -268,7 +268,7 @@ export default function TradePage({ myCards = [], onRefresh, onRemoveCards, onSw
       await acceptTradeRPC(tradeId)
       // Single atomic state update: remove cards given away, add cards received
       const removeIds = trade?.receiver_cards || []
-      const addRawCards = (trade?.sender_cards || []).map(id => cardMap[id]).filter(Boolean)
+      const addRawCards = (trade?.sender_cards || []).map(id => cardMap[id]).filter(Boolean).map(mapCard)
       onSwapCards?.(removeIds, addRawCards)
       await loadAll()
     } catch (e) {
