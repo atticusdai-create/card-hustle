@@ -21,7 +21,7 @@ export default function Signup() {
       await signUp(email, password, username.trim())
       navigate('/')
     } catch (err) {
-      setError(err)
+      setError(err?.message || err?.error_description || 'Something went wrong')
     } finally {
       setLoading(false)
     }
