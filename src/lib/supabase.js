@@ -7,8 +7,12 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
-export async function authSignUp(email, password) {
-  const { data, error } = await supabase.auth.signUp({ email, password })
+export async function authSignUp(email, password, username) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { username } },
+  })
   if (error) throw error
   return data
 }

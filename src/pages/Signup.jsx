@@ -21,7 +21,7 @@ export default function Signup() {
       await signUp(email, password, username.trim())
       navigate('/')
     } catch (err) {
-      setError(err?.message || err?.error_description || 'Something went wrong')
+      setError(err?.message || err?.error_description || 'Signup failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -39,7 +39,7 @@ export default function Signup() {
         <form onSubmit={handleSubmit} className="bg-slate-800 rounded-2xl p-6 flex flex-col gap-4">
           {error && (
             <div className="bg-red-900/60 border border-red-700 text-red-200 text-sm rounded-xl px-4 py-3">
-              {error?.message ?? error}
+              {error}
             </div>
           )}
 
