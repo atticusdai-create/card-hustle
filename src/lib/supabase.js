@@ -7,17 +7,9 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
-export async function authSignUp(email, password, username) {
+export async function authSignUp(email, password) {
   const { data, error } = await supabase.auth.signUp({ email, password })
   if (error) throw error
-  if (data.user) {
-    const { error: pe } = await supabase.from('profiles').insert({
-      id: data.user.id,
-      username,
-      balance: 500,
-    })
-    if (pe) throw pe
-  }
   return data
 }
 

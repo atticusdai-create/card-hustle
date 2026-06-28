@@ -8,12 +8,12 @@ export default function Signup() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
+    setError(null)
     if (username.trim().length < 3) { setError('Username must be at least 3 characters'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
     setLoading(true)
@@ -21,7 +21,7 @@ export default function Signup() {
       await signUp(email, password, username.trim())
       navigate('/')
     } catch (err) {
-      setError(err.message || 'Signup failed')
+      setError(err)
     } finally {
       setLoading(false)
     }
@@ -39,7 +39,7 @@ export default function Signup() {
         <form onSubmit={handleSubmit} className="bg-slate-800 rounded-2xl p-6 flex flex-col gap-4">
           {error && (
             <div className="bg-red-900/60 border border-red-700 text-red-200 text-sm rounded-xl px-4 py-3">
-              {error}
+              {error?.message ?? error}
             </div>
           )}
 
