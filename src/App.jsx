@@ -196,6 +196,24 @@ export default function App() {
     return () => { cancelled = true; supabase.removeChannel(channel) }
   }, [user?.id])
 
+  // ── Realtime: remove cards that were traded away to another user ───────────
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel(`cards-ownership-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'cards' },
+        ({ new: updated }) => {
+          if (updated.user_id !== user.id) {
+            updateCards(prev => prev.filter(c => c.id !== updated.id))
+          }
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user?.id])
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   function showNotification(message, type = 'info') {
     setNotification({ message, type })
