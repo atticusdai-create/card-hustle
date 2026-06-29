@@ -19,14 +19,24 @@ function fmtPct(p) {
 
 function packOdds(pack) {
   if (pack.id === 'sapphire_box') {
-    const randTotal = 350 + 250
-    const randCards = pack.cardCount - 1
+    const guaranteed = pack.guaranteeCount
+    const fill = pack.cardCount - guaranteed
+    const total = pack.cardCount
+    const fillTotal = pack.weights[6] + pack.weights[7] // Numbered + Patch Jersey
     return [
-      { rarity: 'Sapphire', pct: (1 / pack.cardCount) * 100 },
-      { rarity: 'Numbered', pct: (randCards / pack.cardCount) * (350 / randTotal) * 100 },
-      { rarity: 'Patch Jersey', pct: (randCards / pack.cardCount) * (250 / randTotal) * 100 },
+      { rarity: 'Sapphire',     pct: (guaranteed / total) * 100 },
+      { rarity: 'Patch Jersey', pct: (fill / total) * (pack.weights[7] / fillTotal) * 100 },
+      { rarity: 'Numbered',     pct: (fill / total) * (pack.weights[6] / fillTotal) * 100 },
     ]
   }
+  if (pack.id === 'numbered_box') {
+    const ooo = pack.oneOfOneChance * 100
+    return [
+      { rarity: 'One of One', pct: ooo },
+      { rarity: 'Numbered', pct: 100 - ooo },
+    ]
+  }
+  if (!pack.weights) return []
   const labels = PACK_RARITY_LABELS.slice(0, pack.weights.length)
   const total = pack.weights.reduce((a, b) => a + b, 0)
   return labels
@@ -36,6 +46,7 @@ function packOdds(pack) {
 }
 
 const RARITY_TEXT = {
+  'One of One':   'text-yellow-400',
   'Sapphire':     'text-blue-400',
   'Patch Jersey': 'text-red-400',
   'Numbered':     'text-cyan-400',
@@ -122,6 +133,21 @@ const BOX_CFG = {
     stripe:   'linear-gradient(90deg, #7c2d12, #ea580c, #fb923c, #ea580c, #7c2d12)',
     pattern:  'repeating-linear-gradient(-48deg, transparent 0px, transparent 12px, rgba(215,75,15,0.07) 12px, rgba(215,75,15,0.07) 13px)',
   },
+  numbered_box: {
+    lidTop:   'linear-gradient(90deg, #011418, #0e7490, #011418)',
+    lidLine:  '#0891b2',
+    headerBg: 'linear-gradient(130deg, #083344 0%, #0e7490 28%, #22d3ee 50%, #0891b2 72%, #083344 100%)',
+    bodyBg:   'linear-gradient(180deg, #020e10 0%, #010a0c 100%)',
+    accentColor: '#22d3ee',
+    border:   '#0891b2',
+    glow:     'rgba(34,211,238,0.5)',
+    labelText: '#e0f7ff',
+    badgeText: '#67e8f9',
+    badge:    'NUMBERED SERIES',
+    btn:      'linear-gradient(135deg, #0e7490, #083344)',
+    stripe:   'linear-gradient(90deg, #083344, #0e7490, #22d3ee, #0e7490, #083344)',
+    pattern:  'repeating-linear-gradient(-48deg, transparent 0px, transparent 12px, rgba(34,211,238,0.06) 12px, rgba(34,211,238,0.06) 13px)',
+  },
   premium_box: {
     lidTop:   'linear-gradient(90deg, #0a0806, #201808, #0a0806)',
     lidLine:  '#806010',
@@ -162,6 +188,7 @@ function PackGraphic({ packType, opening }) {
             : packType.id === 'hobby' ? { foil: BOX_CFG.hobby.headerBg, border: BOX_CFG.hobby.border, glow: BOX_CFG.hobby.glow, highlight: BOX_CFG.hobby.labelText }
             : packType.id === 'premium_box' ? { foil: BOX_CFG.premium_box.headerBg, border: BOX_CFG.premium_box.border, glow: BOX_CFG.premium_box.glow, highlight: BOX_CFG.premium_box.labelText }
             : packType.id === 'sapphire_box' ? { foil: 'linear-gradient(155deg,#051828,#0a3554,#0e4870)', border: '#5dc8f5', glow: 'rgba(45,175,240,0.5)', highlight: '#bae6fd' }
+            : packType.id === 'numbered_box' ? { foil: 'linear-gradient(155deg,#011418,#083344,#0e7490)', border: '#22d3ee', glow: 'rgba(34,211,238,0.5)', highlight: '#e0f7ff' }
             : PACK_CFG.base
 
   return (
@@ -486,7 +513,7 @@ function BoxStoreCard({ pack, money, onBuy }) {
         justifyContent: 'space-between', gap: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
-          {[['10', 'PACKS'], ['50', 'CARDS']].map(([val, label], i) => (
+          {[[String(pack.cardCount / 5), 'PACKS'], [String(pack.cardCount), 'CARDS']].map(([val, label], i) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center' }}>
               {i > 0 && <div style={{ width: 1, background: `${cfg.accentColor}20`, alignSelf: 'stretch', margin: '0 16px' }} />}
               <div style={{ textAlign: 'center' }}>
@@ -593,7 +620,7 @@ function SapphireBoxCard({ pack, money, onBuy }) {
       </div>
 
       <div className="flex justify-center py-4" style={{ gap: 0 }}>
-        {[['5', 'PACKS'], ['25', 'CARDS'], ['100%', 'SAPPHIRE']].map(([val, label], i) => (
+        {[['5', 'PACKS'], ['25', 'CARDS'], ['10', 'SAPPHIRE']].map(([val, label], i) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center' }}>
             {i > 0 && <div style={{ width: 1, height: 36, background: 'rgba(56,189,248,0.18)', margin: '0 24px' }} />}
             <div style={{ textAlign: 'center' }}>
@@ -629,11 +656,11 @@ function SapphireBoxCard({ pack, money, onBuy }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
           <p style={{ color: 'rgba(93,200,245,0.45)', fontSize: 8, fontWeight: 700, letterSpacing: 2, margin: 0 }}>PULL ODDS</p>
           <span style={{ color: '#38bdf8', fontSize: 9, fontWeight: 800, letterSpacing: 1, background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 4, padding: '2px 7px' }}>
-            Guarantees 1 Sapphire
+            10 GUARANTEED SAPPHIRE
           </span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {packOdds(pack).filter(({ rarity }) => rarity !== 'Sapphire').map(({ rarity, pct }) => (
+          {packOdds(pack).map(({ rarity, pct }) => (
             <div key={rarity} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className={`text-[10px] font-semibold ${RARITY_TEXT[rarity] || 'text-slate-400'}`}>{rarity}</span>
               <span style={{ color: 'rgba(125,211,252,0.8)', fontSize: 10, fontWeight: 700 }}>{fmtPct(pct)}</span>
@@ -821,15 +848,16 @@ export default function BuyPacks({ money, onPurchase, onAddCards }) {
 
   if (phase === 'opening' && opened) {
     const isSapphire = opened.packType.id === 'sapphire_box'
+    const isNumbered = opened.packType.id === 'numbered_box'
     return (
       <div className="flex flex-col items-center justify-center gap-8 py-16">
-        <p className={`text-sm tracking-widest font-medium ${isSapphire ? 'text-sky-400 animate-pulse' : 'text-slate-400'}`}>
-          {isSapphire ? '💎 OPENING THE VAULT...' : 'OPENING...'}
+        <p className={`text-sm tracking-widest font-medium ${isSapphire ? 'text-sky-400 animate-pulse' : isNumbered ? 'text-cyan-400 animate-pulse' : 'text-slate-400'}`}>
+          {isSapphire ? '💎 OPENING THE VAULT...' : isNumbered ? '#️⃣ BREAKING THE SEAL...' : 'OPENING...'}
         </p>
         <PackGraphic packType={opened.packType} opening />
         <div className="flex gap-1.5">
           {[0,1,2].map(i => (
-            <div key={i} className={`w-2 h-2 rounded-full animate-bounce ${isSapphire ? 'bg-sky-400' : 'bg-amber-500'}`}
+            <div key={i} className={`w-2 h-2 rounded-full animate-bounce ${isSapphire ? 'bg-sky-400' : isNumbered ? 'bg-cyan-400' : 'bg-amber-500'}`}
               style={{ animationDelay: `${i * 0.15}s` }} />
           ))}
         </div>

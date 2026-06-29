@@ -251,13 +251,13 @@ function generateId() {
 // Track which players already have a 1/1 this session so duplicates never generate
 const generatedOneOfOnes = new Set()
 
-export function generateCard({ sport, rarityBias, forceRarity, condition, forShow = false } = {}) {
+export function generateCard({ sport, rarityBias, forceRarity, condition, forShow = false, oneOfOneChance = 0.000001 } = {}) {
   const chosenSport = sport || SPORTS[randInt(0, SPORTS.length - 1)]
   const players = PLAYERS[chosenSport]
   const player = players[randInt(0, players.length - 1)]
 
-  // One of One: 1-in-1,000,000 chance per card generated, unique per player per session
-  if (!generatedOneOfOnes.has(player.name) && Math.random() < 0.000001) {
+  // One of One: unique per player per session; chance boosted by certain pack types
+  if (!generatedOneOfOnes.has(player.name) && Math.random() < oneOfOneChance) {
     generatedOneOfOnes.add(player.name)
     const targetValue = Math.round(rand(500000, 5000000) * 100) / 100
     return {
@@ -533,6 +533,18 @@ export const PACK_TYPES = [
     guarantee: 'Downtown',
   },
   {
+    id: 'numbered_box',
+    name: 'Numbered Box',
+    price: 50000,
+    cardCount: 25,
+    icon: '#️⃣',
+    color: '#22d3ee',
+    gradient: 'linear-gradient(135deg, #0e7490, #164e63)',
+    description: '5 packs · 25 cards · All Numbered · Best 1-of-1 odds in the game',
+    forceRarity: 'Numbered',
+    oneOfOneChance: 0.01,
+  },
+  {
     id: 'sapphire_box',
     name: 'Sapphire Box',
     price: 800000,
@@ -540,11 +552,12 @@ export const PACK_TYPES = [
     icon: '💎',
     color: '#38bdf8',
     gradient: 'linear-gradient(135deg, #0369a1, #0c4a6e)',
-    description: '5 packs · 25 cards · Guaranteed 1 Sapphire · Rest are Numbered & Patch Jersey',
+    description: '5 packs · 25 cards · 10 Guaranteed Sapphires · Patch Jersey & Numbered',
     // RARITIES order: Base, Parallel, Net to Net, Downtown, Signature, Kaboom, Numbered, Patch Jersey, Sapphire
-    // Sapphire weight is 0 so random draws never produce one; the guarantee always fires, injecting exactly 1.
-    weights: [0, 0, 0, 0, 0, 0, 350, 250, 0],
+    // Weights apply to the 15 non-guaranteed slots only; Kaboom excluded
+    weights: [0, 0, 0, 0, 0, 0, 40, 60, 0],
     guarantee: 'Sapphire',
+    guaranteeCount: 10,
   },
 ]
 
@@ -553,10 +566,19 @@ export function generatePackCards(packType) {
   const rarityList = RARITIES.slice(0, -1)
   const cards = []
 
+  if (packType.forceRarity) {
+    for (let i = 0; i < packType.cardCount; i++) {
+      cards.push(generateCard({ forceRarity: packType.forceRarity, oneOfOneChance: packType.oneOfOneChance }))
+    }
+    return cards
+  }
+
   if (packType.guarantee === 'Sapphire') {
-    // Force exactly one Sapphire (bypasses hotness check), then fill the rest from pack weights
-    cards.push(generateCard({ forceRarity: 'Sapphire' }))
-    for (let i = 1; i < packType.cardCount; i++) {
+    const count = packType.guaranteeCount || 1
+    for (let i = 0; i < count; i++) {
+      cards.push(generateCard({ forceRarity: 'Sapphire' }))
+    }
+    for (let i = count; i < packType.cardCount; i++) {
       const rarity = pickWeighted(rarityList, packType.weights.slice(0, rarityList.length))
       cards.push(generateCard({ rarityBias: rarity }))
     }
