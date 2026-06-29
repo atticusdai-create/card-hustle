@@ -222,7 +222,7 @@ const nbaPlayers = [
   { name: 'Jeremiah Fears',        team: 'Toronto Raptors',         position: 'PG', sport: 'Basketball', cardType: 'Parallel' },
   { name: 'Khaman Maluach',        team: 'Houston Rockets',         position: 'C',  sport: 'Basketball', cardType: 'Parallel' },
   { name: 'Egor Demin',            team: 'Memphis Grizzlies',       position: 'PG', sport: 'Basketball', cardType: 'Base' },
-  { name: 'Carter Bryant',         team: 'Golden State Warriors',   position: 'SF', sport: 'Basketball', cardType: 'Base' },
+  { name: 'Carter Bryant',         team: 'San Antonio Spurs',       position: 'SF', sport: 'Basketball', cardType: 'Base' },
   { name: 'Eric Dixon',            team: 'Indiana Pacers',          position: 'PF', sport: 'Basketball', cardType: 'Base' },
   { name: 'Hugo Gonzalez',         team: 'Oklahoma City Thunder',   position: 'SG', sport: 'Basketball', cardType: 'Base' },
 ]

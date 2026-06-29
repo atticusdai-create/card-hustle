@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useEffect, useRef, memo } from 'react'
+import { useState, useMemo, useEffect, memo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { LayoutGrid, Store, Award, Search, X, Zap, Check, Trash2 } from 'lucide-react'
+import { LayoutGrid, Store, Award, Search, X, Zap, Trash2 } from 'lucide-react'
 import CardDisplay from './CardDisplay'
 import PSASlabCard from './PSASlabCard'
 import { SPORTS, SPORT_EMOJIS } from '../lib/gameData'
@@ -94,24 +94,6 @@ const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, on
     : <CardDisplay card={card}>{buttons}</CardDisplay>
 })
 
-// Quick-list card — memo so only the toggled card re-renders on selection change
-const QuickListCard = memo(function QuickListCard({ card, isSelected, onToggle }) {
-  return (
-    <button
-      onClick={() => onToggle(card.id)}
-      className={`w-full text-left relative rounded-xl transition-all ${
-        isSelected ? 'ring-2 ring-amber-500 ring-offset-2 ring-offset-slate-900' : 'opacity-70 hover:opacity-90'
-      }`}
-    >
-      {isSelected && (
-        <div className="absolute top-2 right-2 z-10 bg-amber-500 rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
-          <Check size={12} className="text-black" strokeWidth={3} />
-        </div>
-      )}
-      {card.psaGrade ? <PSASlabCard card={card} /> : <CardDisplay card={card} />}
-    </button>
-  )
-})
 
 export default function Collection({ collectionCards, money, onMoveToShop, onSendToGrading, onSellAll, scrollRef }) {
   const [sportFilter, setSportFilter] = useState('All')
@@ -119,10 +101,7 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [psaFilter, setPsaFilter] = useState('All')
-  const [quickListMode, setQuickListMode] = useState(false)
-  const [selectedCardIds, setSelectedCardIds] = useState(new Set())
-  const [quickListPrice, setQuickListPrice] = useState('')
-  const [quickListError, setQuickListError] = useState('')
+  const [quickListConfirm, setQuickListConfirm] = useState(false)
   const [sellAllConfirm, setSellAllConfirm] = useState(false)
   const [cols, setCols] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 640 ? 3 : 2)
 
@@ -139,43 +118,9 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  const enterQuickList = useCallback(() => {
-    setQuickListMode(true)
-    setSelectedCardIds(new Set())
-    setQuickListPrice('')
-    setQuickListError('')
-  }, [])
-
-  const exitQuickList = useCallback(() => {
-    setQuickListMode(false)
-    setSelectedCardIds(new Set())
-    setQuickListPrice('')
-    setQuickListError('')
-  }, [])
-
-  const toggleCardSelection = useCallback((cardId) => {
-    setSelectedCardIds(prev => {
-      const next = new Set(prev)
-      if (next.has(cardId)) next.delete(cardId)
-      else next.add(cardId)
-      return next
-    })
-    setQuickListError('')
-  }, [])
-
-  function handleListAll() {
-    const selectedCards = collectionCards.filter(c => selectedCardIds.has(c.id))
-    if (selectedCards.length === 0) { setQuickListError('Select at least one card'); return }
-    const price = parseFloat(quickListPrice)
-    if (isNaN(price) || price <= 0) { setQuickListError('Enter a valid price'); return }
-    const blocking = selectedCards.find(c => price > c.currentValue + 50)
-    if (blocking) {
-      const minMax = Math.min(...selectedCards.map(c => c.currentValue + 50))
-      setQuickListError(`Price too high — max is $${Math.round(minMax)} for the cheapest selected card`)
-      return
-    }
-    selectedCards.forEach(c => onMoveToShop(c.id, Math.round(price * 100) / 100))
-    exitQuickList()
+  function handleQuickListAll() {
+    collectionCards.forEach(c => onMoveToShop(c.id, Math.round(c.currentValue * 100) / 100))
+    setQuickListConfirm(false)
   }
 
   const totalValue = useMemo(
@@ -214,7 +159,7 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef?.current ?? null,
-    estimateSize: () => quickListMode ? 215 : 295,
+    estimateSize: () => 295,
     overscan: 3,
   })
 
@@ -240,25 +185,19 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
       {collectionCards.length > 0 && (
         <div className="flex gap-2">
           <button
-            onClick={quickListMode ? exitQuickList : enterQuickList}
-            className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-colors ${
-              quickListMode
-                ? 'bg-red-500 hover:bg-red-400 text-white'
-                : 'bg-amber-500 hover:bg-amber-400 text-black'
-            }`}
+            onClick={() => setQuickListConfirm(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-colors bg-amber-500 hover:bg-amber-400 text-black"
           >
             <Zap size={16} />
-            <span>{quickListMode ? 'Cancel' : 'Quick List'}</span>
+            <span>Quick List</span>
           </button>
-          {!quickListMode && (
-            <button
-              onClick={() => setSellAllConfirm(true)}
-              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
-            >
-              <Trash2 size={16} />
-              <span>Delete All</span>
-            </button>
-          )}
+          <button
+            onClick={() => setSellAllConfirm(true)}
+            className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+          >
+            <Trash2 size={16} />
+            <span>Delete All</span>
+          </button>
         </div>
       )}
 
@@ -346,7 +285,7 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
       ) : (
         <div
           style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
-          className={quickListMode ? 'pb-36' : ''}
+          className=""
         >
           {virtualItems.map(virtualRow => (
             <div
@@ -356,24 +295,15 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)` }}
             >
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 items-start pb-3">
-                {rows[virtualRow.index].map(card =>
-                  quickListMode ? (
-                    <QuickListCard
-                      key={card.id}
-                      card={card}
-                      isSelected={selectedCardIds.has(card.id)}
-                      onToggle={toggleCardSelection}
-                    />
-                  ) : (
-                    <CollectionCard
-                      key={card.id}
-                      card={card}
-                      canAffordGrading={canAffordGrading}
-                      onMoveToShop={onMoveToShop}
-                      onSendToGrading={onSendToGrading}
-                    />
-                  )
-                )}
+                {rows[virtualRow.index].map(card => (
+                  <CollectionCard
+                    key={card.id}
+                    card={card}
+                    canAffordGrading={canAffordGrading}
+                    onMoveToShop={onMoveToShop}
+                    onSendToGrading={onSendToGrading}
+                  />
+                ))}
               </div>
             </div>
           ))}
@@ -406,41 +336,28 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
         </div>
       )}
 
-      {/* Quick List bottom panel */}
-      {quickListMode && (
-        <div className="fixed bottom-20 left-0 right-0 z-30 px-4 pb-2 max-w-lg mx-auto">
-          <div className="bg-slate-800 border border-amber-500/40 rounded-2xl p-4 shadow-2xl shadow-black/60">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Zap size={14} className="text-amber-400" />
-                <span className="text-white text-sm font-bold">Quick List</span>
-              </div>
-              <span className="text-amber-400 text-sm font-semibold">
-                {selectedCardIds.size} card{selectedCardIds.size !== 1 ? 's' : ''} selected
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <div className={`flex-1 flex items-center bg-slate-900 rounded-xl border overflow-hidden ${quickListError ? 'border-red-500' : 'border-slate-600 focus-within:border-amber-500'} transition-colors`}>
-                <span className="text-amber-500 text-sm pl-3">$</span>
-                <input
-                  type="number"
-                  placeholder="Price for all"
-                  className="flex-1 bg-transparent text-white text-sm px-2 py-2.5 outline-none placeholder-slate-500"
-                  value={quickListPrice}
-                  onChange={e => { setQuickListPrice(e.target.value); setQuickListError('') }}
-                  onKeyDown={e => { if (e.key === 'Enter') handleListAll() }}
-                />
-              </div>
+      {/* Quick List confirmation modal */}
+      {quickListConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 pb-6 sm:pb-0">
+          <div className="bg-slate-800 border border-amber-500/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-white font-bold text-lg mb-1">List All Cards?</h2>
+            <p className="text-slate-400 text-sm mb-5">
+              List all <span className="text-white font-semibold">{collectionCards.length} card{collectionCards.length !== 1 ? 's' : ''}</span> in the shop at their current market value.
+            </p>
+            <div className="flex gap-3">
               <button
-                onClick={handleListAll}
-                disabled={selectedCardIds.size === 0}
-                className="bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap"
+                onClick={() => setQuickListConfirm(false)}
+                className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleQuickListAll}
+                className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors"
               >
                 List All
               </button>
             </div>
-            {quickListError && <p className="text-red-400 text-xs mt-2">{quickListError}</p>}
-            <p className="text-slate-500 text-xs mt-2">Tap cards above to select · Max price = card value + $50</p>
           </div>
         </div>
       )}
