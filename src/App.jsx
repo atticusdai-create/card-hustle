@@ -191,7 +191,16 @@ export default function App() {
     fetchCount()
     const channel = supabase
       .channel(`pending-trades-${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trades' }, fetchCount)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trades' }, (payload) => {
+        fetchCount()
+        // When one of the sender's trades is accepted, remove their given cards
+        // immediately. The cards subscription can't reliably fire for the sender
+        // once RLS revokes their access to the row after user_id changes.
+        const trade = payload.new
+        if (trade?.status === 'accepted' && trade?.sender_id === user.id && trade?.sender_cards?.length) {
+          updateCards(prev => prev.filter(c => !trade.sender_cards.includes(c.id)))
+        }
+      })
       .subscribe()
     return () => { cancelled = true; supabase.removeChannel(channel) }
   }, [user?.id])

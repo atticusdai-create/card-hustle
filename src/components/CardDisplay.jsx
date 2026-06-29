@@ -682,32 +682,6 @@ const CardDisplay = memo(function CardDisplay({ card, children, compact = false,
             </div>
           )}
 
-          {/* ── One of One: 1/1 stamp ── */}
-          {d.oneOfOne && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ paddingBottom: compact ? 28 : 44 }}>
-              <div style={{
-                fontSize: compact ? 28 : 48,
-                fontWeight: 900,
-                color: '#ffd700',
-                fontFamily: 'Georgia, serif',
-                letterSpacing: '-0.02em',
-                lineHeight: 1,
-                animation: 'one-of-one-pulse 2s ease-in-out infinite',
-              }}>
-                1<span style={{ fontSize: compact ? 20 : 34, opacity: 0.75 }}>/</span>1
-              </div>
-              <div style={{
-                fontSize: compact ? 5 : 7.5,
-                color: 'rgba(255,215,0,0.5)',
-                fontFamily: 'monospace',
-                letterSpacing: '0.4em',
-                marginTop: compact ? 2 : 5,
-                textTransform: 'uppercase',
-              }}>
-                UNIQUE
-              </div>
-            </div>
-          )}
 
           {/* ── Patch swatch (top-right) ── */}
           {d.patch && (
