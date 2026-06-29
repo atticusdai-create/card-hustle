@@ -156,7 +156,7 @@ export const RARITY_ORDER = {
   'One of One': 9,
 }
 
-export const CONDITIONS = ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent', 'Mint', 'Gem Mint']
+export const CONDITIONS = ['Fine', 'Good', 'Excellent', 'Near Mint', 'Mint', 'Gem Mint']
 
 // Value ranges [min, max] per card type — applied as baseValue before condition/year mods
 const TYPE_VALUE_RANGES = {
@@ -189,13 +189,12 @@ const NUMBERED_VALUE_RANGES  = {
 const RARITY_WEIGHTS = [1600, 300, 60, 24, 6, 4, 40, 1]
 
 export const CONDITION_MULTS = {
-  Poor:       0.05,
-  Fair:       0.15,
-  Good:       0.35,
-  'Very Good':0.55,
-  Excellent:  0.75,
-  Mint:       1.00,
-  'Gem Mint': 1.25,
+  Fine:        0.35,
+  Good:        0.50,
+  Excellent:   0.65,
+  'Near Mint': 0.85,
+  Mint:        1.00,
+  'Gem Mint':  1.25,
 }
 
 export const PSA_MULTS = {
@@ -239,7 +238,7 @@ function yearMult(year) {
 
 export function calcCurrentValue(card) {
   const ym = yearMult(card.year)
-  const cm = card.psaGrade ? PSA_MULTS[card.psaGrade] : CONDITION_MULTS[card.condition]
+  const cm = card.psaGrade ? PSA_MULTS[card.psaGrade] : (CONDITION_MULTS[card.condition] ?? 0.65)
   return Math.max(0.01, Math.round(card.baseValue * ym * cm * 100) / 100)
 }
 
@@ -320,9 +319,10 @@ export function generateCard({ sport, rarityBias, forceRarity, condition, forSho
     baseValue = Math.round((tMin + (tMax - tMin) * Math.random()) * 100) / 100
   }
 
+  // Weights for CONDITIONS order: Fine, Good, Excellent, Near Mint, Mint, Gem Mint
   const conditionWeights = forShow
-    ? [0, 2, 5, 12, 25, 36, 20]
-    : [3, 5, 10, 18, 28, 25, 11]
+    ? [2, 8, 20, 35, 25, 10]
+    : [5, 15, 28, 30, 15, 7]
   const cond = condition || pickWeighted(CONDITIONS, conditionWeights)
 
   const card = {
@@ -349,19 +349,17 @@ export function generateCard({ sport, rarityBias, forceRarity, condition, forSho
   return card
 }
 
-// Generate a PSA grade (5–10) biased by the card's condition
+// Determine PSA grade from condition — deterministic, no randomness
 export function generatePsaGrade(condition) {
-  const gradePools = {
-    Poor:         [5,5,5,6,6],
-    Fair:         [5,5,6,6,6],
-    Good:         [5,5,6,6,7,7],
-    'Very Good':  [5,6,6,7,7,8],
-    Excellent:    [6,6,7,7,8,8],
-    Mint:         [7,7,8,8,9,9],
-    'Gem Mint':   [8,8,9,9,9,10,10],
+  const conditionToGrade = {
+    'Gem Mint':  10,
+    'Mint':       9,
+    'Near Mint':  8,
+    'Excellent':  7,
+    'Good':       6,
+    'Fine':       5,
   }
-  const pool = gradePools[condition] || [5,6,7,8]
-  return pool[randInt(0, pool.length - 1)]
+  return conditionToGrade[condition] ?? 7
 }
 
 // Generate AI trade offers based on player's collection.
