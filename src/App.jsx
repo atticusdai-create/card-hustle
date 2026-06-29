@@ -278,6 +278,30 @@ export default function App() {
     showNotification('Card sent to PSA grading! (~1 min)', 'info')
   }, [online, user])
 
+  const submitAllForGrading = useCallback((cardIds) => {
+    const total = cardIds.length * GRADING_COST
+    if (gameStateRef.current.money < total) return
+    const now = new Date()
+    const completeAt = new Date(now.getTime() + GRADING_MS).toISOString()
+    updateCards(prev => prev.map(c =>
+      cardIds.includes(c.id)
+        ? { ...c, location: 'grading', gradingSubmittedAt: now.toISOString(), gradingCompleteAt: completeAt }
+        : c
+    ))
+    updateGameState(prev => ({
+      ...prev,
+      money: Math.round((prev.money - total) * 100) / 100,
+      totalSpent: Math.round((prev.totalSpent + total) * 100) / 100,
+    }))
+    cardIds.forEach(id => {
+      const card = cardsRef.current.find(c => c.id === id)
+      if (card && online && user) {
+        upsertCard({ ...card, location: 'grading', gradingSubmittedAt: now.toISOString(), gradingCompleteAt: completeAt }, user.id).catch(console.error)
+      }
+    })
+    showNotification(`${cardIds.length} cards sent to PSA grading! (~1 min)`, 'info')
+  }, [online, user])
+
   function completeGrading(card) {
     const grade = generatePsaGrade(card.condition)
     const updated = { ...card, psaGrade: grade, location: 'collection', gradingCompleteAt: null, gradingSubmittedAt: null }
@@ -477,6 +501,7 @@ export default function App() {
                   collectionCards={collectionCards}
                   gradingCards={gradingCards}
                   onSubmitForGrading={submitForGrading}
+                  onSubmitAllForGrading={submitAllForGrading}
                 />
               )}
               {activeTab === 'collection' && (

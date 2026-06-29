@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Award, Clock, CheckCircle, Send } from 'lucide-react'
+import { Award, Clock, CheckCircle, Send, Layers } from 'lucide-react'
 import { RARITY_COLORS, SPORT_EMOJIS } from '../lib/gameData'
 
 const GRADING_COST = 80
@@ -39,8 +39,10 @@ export default function PSAGrading({
   collectionCards,
   gradingCards,
   onSubmitForGrading,
+  onSubmitAllForGrading,
 }) {
   const [selected, setSelected] = useState(new Set())
+  const [gradeAllPending, setGradeAllPending] = useState(false)
   const cost = selected.size * GRADING_COST
   const canAfford = money >= cost
 
@@ -59,6 +61,15 @@ export default function PSAGrading({
   }
 
   const eligibleCards = collectionCards.filter(c => !c.psaGrade)
+  const totalCostAll = eligibleCards.length * GRADING_COST
+  const canAffordAll = money >= totalCostAll
+
+  function handleGradeAll() {
+    if (!canAffordAll || eligibleCards.length === 0) return
+    onSubmitAllForGrading(eligibleCards.map(c => c.id))
+    setGradeAllPending(false)
+    setSelected(new Set())
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -138,9 +149,48 @@ export default function PSAGrading({
       {/* Card selection */}
       {eligibleCards.length > 0 && (
         <div>
-          <h3 className="text-slate-300 font-semibold text-sm mb-2">
-            Select Cards to Grade
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-slate-300 font-semibold text-sm">
+              Select Cards to Grade
+            </h3>
+            <button
+              onClick={() => setGradeAllPending(p => !p)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold transition-colors border border-slate-600"
+            >
+              <Layers size={12} />
+              Grade All ({eligibleCards.length})
+            </button>
+          </div>
+
+          {gradeAllPending && (
+            <div className="mb-3 bg-slate-800 border border-amber-500/40 rounded-xl p-3 slide-up">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-white text-sm font-semibold">
+                  Grade all {eligibleCards.length} card{eligibleCards.length > 1 ? 's' : ''}?
+                </p>
+                <p className={`font-bold text-sm ${canAffordAll ? 'text-amber-400' : 'text-red-400'}`}>
+                  Total: {fmt(totalCostAll)}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGradeAll}
+                  disabled={!canAffordAll}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-colors
+                    ${canAffordAll ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+                >
+                  <Send size={13} />
+                  {canAffordAll ? 'Confirm & Submit All' : `Need ${fmt(totalCostAll - money)} more`}
+                </button>
+                <button
+                  onClick={() => setGradeAllPending(false)}
+                  className="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             {eligibleCards.map(card => {
               const rc = RARITY_COLORS[card.rarity] ?? RARITY_COLORS['Base']
