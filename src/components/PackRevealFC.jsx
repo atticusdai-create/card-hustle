@@ -231,16 +231,48 @@ function CompleteView({ cards, onAddToCollection }) {
   )
 }
 
+// Rarity rank — higher = better
+const RARITY_RANK = {
+  'One of One':        10,
+  'Sapphire':          9,
+  'Ruby':              9,
+  'Emerald':           9,
+  'Patch Jersey Gold': 8,
+  'Patch Jersey Blue': 8,
+  'Patch Jersey':      8,
+  'Kaboom Purple':     7,
+  'Kaboom Blue':       7,
+  'Kaboom':            7,
+  'Signature Black':   6,
+  'Signature Blue':    6,
+  'Signature':         6,
+  'Numbered Red':      5,
+  'Numbered Blue':     5,
+  'Numbered':          5,
+  'Downtown':          4,
+  'Net to Net':        3,
+  'Parallel':          2,
+  'Base':              1,
+}
+
+function rarityRank(card) {
+  if (!card?.rarity) return 0
+  if (RARITY_RANK[card.rarity] !== undefined) return RARITY_RANK[card.rarity]
+  const match = Object.entries(RARITY_RANK).find(([k]) => card.rarity.startsWith(k))
+  return match ? match[1] : 0
+}
+
+function bestCard(arr) {
+  return arr.reduce((best, c) => rarityRank(c) >= rarityRank(best) ? c : best, arr[0])
+}
+
 // ── Main export ──────────────────────────────────────────────────────────────
 
 export default function PackRevealFC({ cards = [], onAddToCollection }) {
-  const [idx, setIdx]                       = useState(0)
-  const [done, setDone]                     = useState([])
-  const [complete, setComplete]             = useState(false)
-  const [gridCards, setGridCards]           = useState(null)
-  const [skippedLow, setSkippedLow]         = useState([])
-  const [activeGridIdx, setActiveGridIdx]   = useState(null)
-  const [revealedGridIdxs, setRevealedGridIdxs] = useState(new Set())
+  const [idx, setIdx]         = useState(0)
+  const [done, setDone]       = useState([])
+  const [complete, setComplete] = useState(false)
+  const [skipCard, setSkipCard] = useState(null) // best card shown after skip
 
   if (!cards.length) return null
 
@@ -257,24 +289,8 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
 
   function handleSkip() {
     const remaining = cards.slice(idx)
-    const lowCards  = remaining.filter(c => !isEpic(c))
-    const highCards = remaining.filter(c => isEpic(c))
-    if (highCards.length === 0) {
-      setComplete(true)
-      return
-    }
-    setSkippedLow(lowCards)
-    setGridCards(highCards)
-  }
-
-  function onGridCardDone(gIdx) {
-    setActiveGridIdx(null)
-    const newRevealed = new Set(revealedGridIdxs)
-    newRevealed.add(gIdx)
-    setRevealedGridIdxs(newRevealed)
-    if (newRevealed.size === gridCards.length) {
-      setComplete(true)
-    }
+    const best = bestCard(remaining)
+    setSkipCard(best)
   }
 
   if (complete) {
@@ -285,74 +301,20 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
     )
   }
 
-  // Grid mode: full-screen epic reveal for the tapped card
-  if (gridCards !== null && activeGridIdx !== null) {
+  // Skip mode: show the single best card face-down, full epic reveal, then complete
+  if (skipCard !== null) {
     return (
       <div className="pfc-overlay">
+        <div className="pfc-progress">
+          <span className="text-slate-400 text-xs tracking-widest">BEST CARD</span>
+        </div>
         <div className="pfc-stage">
           <CardReveal
-            key={`grid-${activeGridIdx}`}
-            card={gridCards[activeGridIdx]}
+            key="skip-best"
+            card={skipCard}
             epic={true}
-            onDone={() => onGridCardDone(activeGridIdx)}
+            onDone={() => setComplete(true)}
           />
-        </div>
-      </div>
-    )
-  }
-
-  // Grid mode: low-rarity cards revealed face-up + high-rarity cards face-down in a row
-  if (gridCards !== null) {
-    const remaining = gridCards.length - revealedGridIdxs.size
-    return (
-      <div className="pfc-overlay pfc-overlay--grid">
-        <div className="pfc-grid-reveal">
-          {skippedLow.length > 0 && (
-            <>
-              <p className="pfc-grid-title">
-                {skippedLow.length} card{skippedLow.length !== 1 ? 's' : ''} revealed
-              </p>
-              <div className="pfc-skip-low-grid">
-                {skippedLow.map((card, i) => (
-                  <div
-                    key={card.id || i}
-                    className="pfc-skip-low-card card-flip-in"
-                    style={{ animationDelay: `${Math.min(i * 0.05, 0.6)}s` }}
-                  >
-                    <CardDisplay card={card} compact />
-                  </div>
-                ))}
-              </div>
-              <div className="pfc-skip-divider" />
-            </>
-          )}
-          <p className="pfc-grid-title">
-            {remaining} rare {remaining === 1 ? 'card' : 'cards'} to reveal
-          </p>
-          <div className="pfc-grid-row">
-            {gridCards.map((card, i) => {
-              const revealed = revealedGridIdxs.has(i)
-              const color = glowColor(card.rarity)
-              return (
-                <div
-                  key={card.id || i}
-                  className={`pfc-grid-card${revealed ? ' pfc-grid-card--revealed' : ' pfc-grid-card--facedown'}`}
-                  style={{ '--g': color }}
-                  onClick={() => !revealed && setActiveGridIdx(i)}
-                  role={revealed ? undefined : 'button'}
-                  tabIndex={revealed ? undefined : 0}
-                  onKeyDown={revealed ? undefined : e => (e.key === 'Enter' || e.key === ' ') && setActiveGridIdx(i)}
-                >
-                  {revealed ? (
-                    <CardDisplay card={card} compact />
-                  ) : (
-                    <CardBack epicSuspense={true} glowCol={color} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-          {remaining > 0 && <p className="pfc-grid-hint">Tap a card to reveal</p>}
         </div>
       </div>
     )
@@ -372,7 +334,6 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
       </div>
 
       <div className="pfc-stage">
-        {/* key forces remount so entering animation fires for each new card */}
         <CardReveal key={idx} card={card} epic={epic} onDone={next} />
       </div>
 
