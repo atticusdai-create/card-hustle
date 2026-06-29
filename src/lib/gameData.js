@@ -545,9 +545,9 @@ export const PACK_TYPES = [
     icon: '#️⃣',
     color: '#22d3ee',
     gradient: 'linear-gradient(135deg, #0e7490, #164e63)',
-    description: '5 packs · 25 cards · All Numbered · Best 1-of-1 odds in the game',
+    description: '5 packs · 25 cards · Numbered 99.999% · 1-of-1 0.001%',
     forceRarity: 'Numbered',
-    oneOfOneChance: 0.01,
+    oneOfOneChance: 0.00001,
   },
   {
     id: 'sapphire_box',
