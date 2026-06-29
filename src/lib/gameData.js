@@ -349,13 +349,13 @@ export function generateCard({ sport, rarityBias, forceRarity, condition, forSho
   return card
 }
 
-// Generate a PSA grade biased by the card's condition
+// Generate a PSA grade (5–10) biased by the card's condition
 export function generatePsaGrade(condition) {
   const gradePools = {
-    Poor:         [1,1,2,2,3],
-    Fair:         [2,2,3,3,4],
-    Good:         [3,3,4,4,5,5],
-    'Very Good':  [4,5,5,6,6,7],
+    Poor:         [5,5,5,6,6],
+    Fair:         [5,5,6,6,6],
+    Good:         [5,5,6,6,7,7],
+    'Very Good':  [5,6,6,7,7,8],
     Excellent:    [6,6,7,7,8,8],
     Mint:         [7,7,8,8,9,9],
     'Gem Mint':   [8,8,9,9,9,10,10],
@@ -479,10 +479,17 @@ export const PLAYER_IMAGES = {
   'Gavi':            'https://r2.thesportsdb.com/images/media/player/cutout/amm91q1726510077.png',
 }
 
-export const PSA_GRADE_LABELS = {
-  10: 'Gem Mint', 9: 'Mint', 8: 'Near Mint', 7: 'Excellent',
-  6: 'Good',      5: 'Fine', 4: 'VG-EX',     3: 'VG', 2: 'Good', 1: 'Poor',
+export const PSA_GRADES = {
+  10: 'Gem Mint',
+  9:  'Mint',
+  8:  'Near Mint',
+  7:  'Excellent',
+  6:  'Good',
+  5:  'Fine',
 }
+
+// Alias for backward compatibility
+export const PSA_GRADE_LABELS = PSA_GRADES
 
 export const PACK_TYPES = [
   {

@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react'
-import { PLAYER_IMAGES, PLAYER_LOOKUP } from '../lib/gameData'
+import { PLAYER_IMAGES, PLAYER_LOOKUP, PSA_GRADES } from '../lib/gameData'
 
 function fmt(n) {
   if (n < 1) return Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -788,7 +788,7 @@ const CardDisplay = memo(function CardDisplay({ card, children, compact = false,
       }}>
         {card.psaGrade ? (
           <span style={{ background: '#16a34a', color: '#fff', fontSize: compact ? 6.5 : 7.5, padding: compact ? '1px 3px' : '1.5px 4px', borderRadius: 3, fontWeight: 800, whiteSpace: 'nowrap' }}>
-            PSA {card.psaGrade}
+            PSA {card.psaGrade}{PSA_GRADES[card.psaGrade] ? ` — ${PSA_GRADES[card.psaGrade]}` : ''}
           </span>
         ) : (
           <span style={{ background: 'rgba(0,0,0,0.18)', color: d.detail, fontSize: compact ? 6.5 : 7.5, padding: compact ? '1px 3px' : '1.5px 4px', borderRadius: 3, fontWeight: 600, whiteSpace: 'nowrap' }}>
