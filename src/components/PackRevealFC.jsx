@@ -263,7 +263,7 @@ function rarityRank(card) {
 }
 
 function bestCard(arr) {
-  return arr.reduce((best, c) => rarityRank(c) >= rarityRank(best) ? c : best, arr[0])
+  return arr.reduce((best, c) => (c.currentValue || 0) >= (best.currentValue || 0) ? c : best, arr[0])
 }
 
 // ── Main export ──────────────────────────────────────────────────────────────
