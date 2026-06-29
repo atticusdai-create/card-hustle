@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, memo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { LayoutGrid, Store, Award, Search, X, Zap, Trash2 } from 'lucide-react'
+import { LayoutGrid, Store, Award, Search, X, Zap, Trash2, Check } from 'lucide-react'
 import CardDisplay from './CardDisplay'
 import PSASlabCard from './PSASlabCard'
 import { SPORTS, SPORT_EMOJIS } from '../lib/gameData'
@@ -16,7 +16,7 @@ function fmt(n) {
 // Memoized card item — only re-renders when this specific card's data changes,
 // or when `canAffordGrading` flips (balance crosses $80), preventing the entire
 // list from repainting on every filter/sort/search update.
-const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, onMoveToShop, onSendToGrading }) {
+const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, onMoveToShop, onSendToGrading, isSelectionMode, isSelected, onToggleSelect }) {
   const [pricing, setPricing] = useState(false)
   const [priceInput, setPriceInput] = useState('')
   const [listError, setListError] = useState('')
@@ -40,6 +40,26 @@ const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, on
       setPriceInput(Math.round(card.currentValue * 1.15).toString())
       setListError('')
     }
+  }
+
+  if (isSelectionMode) {
+    const inner = card.psaGrade
+      ? <PSASlabCard card={card} />
+      : <CardDisplay card={card} />
+    return (
+      <div
+        onClick={() => onToggleSelect(card.id)}
+        className={`relative cursor-pointer rounded-xl transition-all select-none ${isSelected ? 'ring-2 ring-amber-400' : 'ring-1 ring-slate-700 opacity-60'}`}
+      >
+        {inner}
+        {isSelected && (
+          <div className="absolute inset-0 rounded-xl bg-amber-500/10 pointer-events-none" />
+        )}
+        <div className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isSelected ? 'bg-amber-500 text-black' : 'bg-slate-800 border-2 border-slate-500'}`}>
+          {isSelected && <Check size={14} strokeWidth={3} />}
+        </div>
+      </div>
+    )
   }
 
   const buttons = (
@@ -101,7 +121,8 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [psaFilter, setPsaFilter] = useState('All')
-  const [quickListConfirm, setQuickListConfirm] = useState(false)
+  const [quickListMode, setQuickListMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
   const [sellAllConfirm, setSellAllConfirm] = useState(false)
   const [cols, setCols] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 640 ? 3 : 2)
 
@@ -118,9 +139,30 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  function handleQuickListAll() {
-    collectionCards.forEach(c => onMoveToShop(c.id, Math.round(c.currentValue * 100) / 100))
-    setQuickListConfirm(false)
+  function enterQuickListMode() {
+    setQuickListMode(true)
+    setSelectedIds(new Set())
+  }
+
+  function exitQuickListMode() {
+    setQuickListMode(false)
+    setSelectedIds(new Set())
+  }
+
+  function toggleCardSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function handleListSelected() {
+    collectionCards
+      .filter(c => selectedIds.has(c.id))
+      .forEach(c => onMoveToShop(c.id, Math.round(c.currentValue * 100) / 100))
+    exitQuickListMode()
   }
 
   const totalValue = useMemo(
@@ -185,19 +227,31 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
       {collectionCards.length > 0 && (
         <div className="flex gap-2">
           <button
-            onClick={() => setQuickListConfirm(true)}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-colors bg-amber-500 hover:bg-amber-400 text-black"
+            onClick={quickListMode ? exitQuickListMode : enterQuickListMode}
+            className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-colors ${quickListMode ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-amber-500 hover:bg-amber-400 text-black'}`}
           >
             <Zap size={16} />
-            <span>Quick List</span>
+            <span>{quickListMode ? 'Cancel' : 'Quick List'}</span>
           </button>
-          <button
-            onClick={() => setSellAllConfirm(true)}
-            className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
-          >
-            <Trash2 size={16} />
-            <span>Delete All</span>
-          </button>
+          {!quickListMode && (
+            <button
+              onClick={() => setSellAllConfirm(true)}
+              className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold text-sm transition-colors bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+            >
+              <Trash2 size={16} />
+              <span>Delete All</span>
+            </button>
+          )}
+          {quickListMode && (
+            <button
+              onClick={handleListSelected}
+              disabled={selectedIds.size === 0}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-colors bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Store size={16} />
+              <span>List Selected{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -302,6 +356,9 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
                     canAffordGrading={canAffordGrading}
                     onMoveToShop={onMoveToShop}
                     onSendToGrading={onSendToGrading}
+                    isSelectionMode={quickListMode}
+                    isSelected={selectedIds.has(card.id)}
+                    onToggleSelect={toggleCardSelect}
                   />
                 ))}
               </div>
@@ -336,31 +393,6 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
         </div>
       )}
 
-      {/* Quick List confirmation modal */}
-      {quickListConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 pb-6 sm:pb-0">
-          <div className="bg-slate-800 border border-amber-500/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 className="text-white font-bold text-lg mb-1">List All Cards?</h2>
-            <p className="text-slate-400 text-sm mb-5">
-              List all <span className="text-white font-semibold">{collectionCards.length} card{collectionCards.length !== 1 ? 's' : ''}</span> in the shop at their current market value.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setQuickListConfirm(false)}
-                className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleQuickListAll}
-                className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors"
-              >
-                List All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
