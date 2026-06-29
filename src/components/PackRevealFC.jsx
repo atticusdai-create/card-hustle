@@ -238,6 +238,7 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
   const [done, setDone]                     = useState([])
   const [complete, setComplete]             = useState(false)
   const [gridCards, setGridCards]           = useState(null)
+  const [skippedLow, setSkippedLow]         = useState([])
   const [activeGridIdx, setActiveGridIdx]   = useState(null)
   const [revealedGridIdxs, setRevealedGridIdxs] = useState(new Set())
 
@@ -258,12 +259,12 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
     const remaining = cards.slice(idx)
     const lowCards  = remaining.filter(c => !isEpic(c))
     const highCards = remaining.filter(c => isEpic(c))
-    setDone(prev => [...prev, ...lowCards])
     if (highCards.length === 0) {
       setComplete(true)
-    } else {
-      setGridCards(highCards)
+      return
     }
+    setSkippedLow(lowCards)
+    setGridCards(highCards)
   }
 
   function onGridCardDone(gIdx) {
@@ -300,12 +301,31 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
     )
   }
 
-  // Grid mode: row of face-down high-rarity cards waiting to be tapped
+  // Grid mode: low-rarity cards revealed face-up + high-rarity cards face-down in a row
   if (gridCards !== null) {
     const remaining = gridCards.length - revealedGridIdxs.size
     return (
       <div className="pfc-overlay">
         <div className="pfc-grid-reveal">
+          {skippedLow.length > 0 && (
+            <>
+              <p className="pfc-grid-title">
+                {skippedLow.length} card{skippedLow.length !== 1 ? 's' : ''} revealed
+              </p>
+              <div className="pfc-skip-low-grid">
+                {skippedLow.map((card, i) => (
+                  <div
+                    key={card.id || i}
+                    className="pfc-skip-low-card card-flip-in"
+                    style={{ animationDelay: `${Math.min(i * 0.05, 0.6)}s` }}
+                  >
+                    <CardDisplay card={card} compact />
+                  </div>
+                ))}
+              </div>
+              <div className="pfc-skip-divider" />
+            </>
+          )}
           <p className="pfc-grid-title">
             {remaining} rare {remaining === 1 ? 'card' : 'cards'} to reveal
           </p>
