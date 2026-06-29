@@ -480,8 +480,8 @@ export const PLAYER_IMAGES = {
 }
 
 export const PSA_GRADE_LABELS = {
-  10: 'GEM-MT', 9: 'MINT', 8: 'NM-MT', 7: 'NM',
-  6: 'EX-MT',  5: 'EX',   4: 'VG-EX', 3: 'VG', 2: 'GOOD', 1: 'PR',
+  10: 'Gem Mint', 9: 'Mint', 8: 'Near Mint', 7: 'Excellent',
+  6: 'Good',      5: 'Fine', 4: 'VG-EX',     3: 'VG', 2: 'Good', 1: 'Poor',
 }
 
 export const PACK_TYPES = [

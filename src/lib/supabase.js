@@ -96,8 +96,14 @@ export async function upsertCard(card, userId) {
     grading_complete_at: card.gradingCompleteAt ?? null,
     serial_number: card.serialNumber ?? null,
     print_run: card.printRun ?? null,
+    favorited: card.favorited ?? false,
   })
   if (error) console.error('Upsert card error:', error)
+}
+
+export async function setCardFavorited(cardId, favorited) {
+  const { error } = await supabase.from('cards').update({ favorited }).eq('id', cardId)
+  if (error) console.error('Set favorited error:', error)
 }
 
 export async function deleteCard(cardId) {

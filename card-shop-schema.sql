@@ -81,3 +81,6 @@ END $$;
 -- Migration: add serial_number and print_run columns for Numbered card type
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS serial_number INTEGER;
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS print_run INTEGER;
+
+-- Migration: add favorited column to protect cards from Delete All
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS favorited BOOLEAN NOT NULL DEFAULT false;

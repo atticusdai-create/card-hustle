@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, memo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { LayoutGrid, Store, Award, Search, X, Zap, Trash2, Check } from 'lucide-react'
+import { LayoutGrid, Store, Award, Search, X, Zap, Trash2, Check, Star } from 'lucide-react'
 import CardDisplay from './CardDisplay'
 import PSASlabCard from './PSASlabCard'
 import { SPORTS, SPORT_EMOJIS } from '../lib/gameData'
@@ -16,7 +16,7 @@ function fmt(n) {
 // Memoized card item — only re-renders when this specific card's data changes,
 // or when `canAffordGrading` flips (balance crosses $80), preventing the entire
 // list from repainting on every filter/sort/search update.
-const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, onMoveToShop, onSendToGrading, isSelectionMode, isSelected, onToggleSelect }) {
+const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, onMoveToShop, onSendToGrading, onToggleFavorite, isSelectionMode, isSelected, onToggleSelect }) {
   const [pricing, setPricing] = useState(false)
   const [priceInput, setPriceInput] = useState('')
   const [listError, setListError] = useState('')
@@ -55,6 +55,12 @@ const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, on
         {isSelected && (
           <div className="absolute inset-0 rounded-xl bg-amber-500/10 pointer-events-none" />
         )}
+        <button
+          onClick={e => { e.stopPropagation(); onToggleFavorite(card.id, !card.favorited) }}
+          className="absolute top-2 left-2 z-10 p-1 rounded-full bg-slate-900/70 backdrop-blur-sm"
+        >
+          <Star size={13} className={card.favorited ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'} />
+        </button>
         <div className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isSelected ? 'bg-amber-500 text-black' : 'bg-slate-800 border-2 border-slate-500'}`}>
           {isSelected && <Check size={14} strokeWidth={3} />}
         </div>
@@ -109,13 +115,24 @@ const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, on
     </div>
   )
 
-  return card.psaGrade
-    ? <PSASlabCard card={card}>{buttons}</PSASlabCard>
-    : <CardDisplay card={card}>{buttons}</CardDisplay>
+  return (
+    <div className="relative">
+      <button
+        onClick={() => onToggleFavorite(card.id, !card.favorited)}
+        className="absolute top-2 left-2 z-10 p-1 rounded-full bg-slate-900/70 backdrop-blur-sm"
+      >
+        <Star size={13} className={card.favorited ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'} />
+      </button>
+      {card.psaGrade
+        ? <PSASlabCard card={card}>{buttons}</PSASlabCard>
+        : <CardDisplay card={card}>{buttons}</CardDisplay>
+      }
+    </div>
+  )
 })
 
 
-export default function Collection({ collectionCards, money, onMoveToShop, onSendToGrading, onSellAll, scrollRef }) {
+export default function Collection({ collectionCards, money, onMoveToShop, onSendToGrading, onSellAll, onToggleFavorite, scrollRef }) {
   const [sportFilter, setSportFilter] = useState('All')
   const [sortBy, setSortBy] = useState('value')
   const [search, setSearch] = useState('')
@@ -356,6 +373,7 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
                     canAffordGrading={canAffordGrading}
                     onMoveToShop={onMoveToShop}
                     onSendToGrading={onSendToGrading}
+                    onToggleFavorite={onToggleFavorite}
                     isSelectionMode={quickListMode}
                     isSelected={selectedIds.has(card.id)}
                     onToggleSelect={toggleCardSelect}
@@ -368,30 +386,42 @@ export default function Collection({ collectionCards, money, onMoveToShop, onSen
       )}
 
       {/* Sell All confirmation modal */}
-      {sellAllConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 pb-6 sm:pb-0">
-          <div className="bg-slate-800 border border-red-500/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 className="text-white font-bold text-lg mb-1">Delete All Cards?</h2>
-            <p className="text-slate-400 text-sm mb-5">
-              Permanently delete all <span className="text-white font-semibold">{collectionCards.length} card{collectionCards.length !== 1 ? 's' : ''}</span> from your collection. This cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setSellAllConfirm(false)}
-                className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { setSellAllConfirm(false); onSellAll() }}
-                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-sm transition-colors"
-              >
-                Delete All
-              </button>
+      {sellAllConfirm && (() => {
+        const favoritedCount = collectionCards.filter(c => c.favorited).length
+        const deleteCount = collectionCards.length - favoritedCount
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 px-4 pb-6 sm:pb-0">
+            <div className="bg-slate-800 border border-red-500/40 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+              <h2 className="text-white font-bold text-lg mb-1">Delete All Cards?</h2>
+              <p className="text-slate-400 text-sm mb-1">
+                Permanently delete <span className="text-white font-semibold">{deleteCount} card{deleteCount !== 1 ? 's' : ''}</span> from your collection. This cannot be undone.
+              </p>
+              {favoritedCount > 0 && (
+                <p className="text-yellow-400 text-xs mb-4 flex items-center gap-1">
+                  <Star size={11} className="fill-yellow-400 shrink-0" />
+                  {favoritedCount} favorited card{favoritedCount !== 1 ? 's' : ''} will be kept.
+                </p>
+              )}
+              {favoritedCount === 0 && <div className="mb-4" />}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSellAllConfirm(false)}
+                  className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { setSellAllConfirm(false); onSellAll() }}
+                  disabled={deleteCount === 0}
+                  className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Delete {deleteCount > 0 ? deleteCount : 'All'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
     </div>
   )

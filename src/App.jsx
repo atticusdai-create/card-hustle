@@ -12,7 +12,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Friends from './pages/Friends'
 import TradePage from './pages/Trade'
-import { supabase, loadGame, saveGameState, upsertCard, deleteCard, deleteCards, getPendingIncomingTradeCount } from './lib/supabase'
+import { supabase, loadGame, saveGameState, upsertCard, deleteCard, deleteCards, setCardFavorited, getPendingIncomingTradeCount } from './lib/supabase'
 import { useAuth } from './contexts/AuthContext'
 import { generateCard, generatePsaGrade, calcCurrentValue, COLLECTOR_NAMES } from './lib/gameData'
 
@@ -58,6 +58,7 @@ function mapDbCard(c) {
     createdAt: c.created_at,
     serialNumber: c.serial_number ?? null,
     printRun: c.print_run ?? null,
+    favorited: c.favorited ?? false,
   }
 }
 
@@ -362,20 +363,24 @@ export default function App() {
     scheduleOffer(1200)
   }, [])
 
+  const toggleFavorite = useCallback((cardId, favorited) => {
+    updateCards(prev => prev.map(c => c.id === cardId ? { ...c, favorited } : c))
+    if (onlineRef.current && userRef.current) setCardFavorited(cardId, favorited).catch(console.error)
+  }, [])
+
   const sellAllCollection = useCallback(async () => {
-    const toSell = cardsRef.current.filter(c => c.location === 'collection')
+    const toSell = cardsRef.current.filter(c => c.location === 'collection' && !c.favorited)
     if (toSell.length === 0) return
-    const totalValue = Math.round(toSell.reduce((s, c) => s + c.currentValue, 0) * 100) / 100
     if (onlineRef.current) {
       try {
         await deleteCards(toSell.map(c => c.id))
       } catch (err) {
-        console.error('Sell All delete failed:', err)
-        showNotification('Sale failed — please try again.', 'error')
+        console.error('Delete All failed:', err)
+        showNotification('Delete failed — please try again.', 'error')
         return
       }
     }
-    updateCards(prev => prev.filter(c => c.location !== 'collection'))
+    updateCards(prev => prev.filter(c => !(c.location === 'collection' && !c.favorited)))
     showNotification(`Deleted ${toSell.length} card${toSell.length === 1 ? '' : 's'} from your collection.`, 'success')
   }, [])
 
@@ -538,6 +543,7 @@ export default function App() {
                   onMoveToShop={moveToShop}
                   onSendToGrading={submitForGrading}
                   onSellAll={sellAllCollection}
+                  onToggleFavorite={toggleFavorite}
                   scrollRef={mainScrollRef}
                 />
               )}
