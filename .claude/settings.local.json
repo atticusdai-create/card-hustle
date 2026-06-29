@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Skill(run)",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done')",
+      "Bash(curl -sf http://localhost:5173)",
+      "Bash(chromium-cli *)",
+      "Bash(open *)",
+      "Bash(npx playwright *)",
+      "Read(//private/tmp/**)",
+      "Bash(node -e ' *)",
+      "Bash(npx --yes playwright@1.61.1 install chromium)",
+      "Bash(npx vite *)",
+      "Bash(xargs ls -la)",
+      "Bash(curl -s http://localhost:5174)",
+      "Skill(artifact-design)",
+      "Bash(node *)",
+      "Bash(grep -E '\\\\.\\(tsx|jsx|ts|js|html|vue|svelte\\)$')",
+      "Bash(git *)"
+    ]
+  }
+}

@@ -59,7 +59,7 @@ const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, on
           onClick={e => { e.stopPropagation(); onToggleFavorite(card.id, !card.favorited) }}
           className="absolute top-2 left-2 z-10 p-1 rounded-full bg-slate-900/70 backdrop-blur-sm"
         >
-          <Star size={13} className={card.favorited ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'} />
+          <Star size={13} className={card.favorited ? 'text-yellow-400 fill-yellow-400' : 'text-white opacity-50'} />
         </button>
         <div className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-lg transition-all z-10 ${isSelected ? 'bg-amber-500 text-black' : 'bg-slate-800 border-2 border-slate-500'}`}>
           {isSelected && <Check size={14} strokeWidth={3} />}
@@ -121,7 +121,7 @@ const CollectionCard = memo(function CollectionCard({ card, canAffordGrading, on
         onClick={() => onToggleFavorite(card.id, !card.favorited)}
         className="absolute top-2 left-2 z-10 p-1 rounded-full bg-slate-900/70 backdrop-blur-sm"
       >
-        <Star size={13} className={card.favorited ? 'text-yellow-400 fill-yellow-400' : 'text-slate-500'} />
+        <Star size={13} className={card.favorited ? 'text-yellow-400 fill-yellow-400' : 'text-white opacity-50'} />
       </button>
       {card.psaGrade
         ? <PSASlabCard card={card}>{buttons}</PSASlabCard>
