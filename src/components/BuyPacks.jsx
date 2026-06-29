@@ -11,10 +11,11 @@ function fmt(n) {
 const PACK_RARITY_LABELS = ['Base', 'Parallel', 'Net to Net', 'Downtown', 'Signature', 'Kaboom', 'Numbered', 'Patch Jersey', 'Sapphire']
 
 function fmtPct(p) {
-  if (p < 0.01) return '< 0.01%'
+  if (p < 0.001) return '< 0.001%'
+  if (p < 0.01) return p.toFixed(3) + '%'
   if (p < 1) return p.toFixed(2) + '%'
   if (p < 10) return p.toFixed(1) + '%'
-  return Math.round(p) + '%'
+  return p >= 99.99 ? p.toFixed(3) + '%' : Math.round(p) + '%'
 }
 
 function packOdds(pack) {
