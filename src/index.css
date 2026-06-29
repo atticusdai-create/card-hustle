@@ -175,8 +175,19 @@ button { cursor: pointer; }
   -webkit-user-select: none;
 }
 .pfc-overlay--complete {
-  overflow-y: auto;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   cursor: default;
+}
+.pfc-overlay--grid {
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+.pfc-overlay--grid .pfc-grid-reveal {
+  flex: none;
+  min-height: 100dvh;
 }
 
 /* ── Screen flash (epic reveals) ── */

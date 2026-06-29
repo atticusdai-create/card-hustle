@@ -305,7 +305,7 @@ export default function PackRevealFC({ cards = [], onAddToCollection }) {
   if (gridCards !== null) {
     const remaining = gridCards.length - revealedGridIdxs.size
     return (
-      <div className="pfc-overlay">
+      <div className="pfc-overlay pfc-overlay--grid">
         <div className="pfc-grid-reveal">
           {skippedLow.length > 0 && (
             <>
